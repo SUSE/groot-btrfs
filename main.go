@@ -17,10 +17,10 @@ func main() {
 
 	driverFlags := []cli.Flag{
 		cli.StringFlag{
-			Name:        "driver-store",
+			Name:        "volumes-dir-name",
 			Value:       "",
-			Usage:       "driver store path",
-			Destination: &driver.Store,
+			Usage:       "Volumes directory name",
+			Destination: &driver.VolumesDirName,
 		},
 
 		cli.StringFlag{
