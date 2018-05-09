@@ -1,32 +1,50 @@
 package main
 
 import (
-	"os"
-
 	"code.cloudfoundry.org/groot"
 	"github.com/suse/groot-btrfs/driver"
-	"github.com/suse/groot-btrfs/hcs"
-	"github.com/suse/groot-btrfs/privilege"
-	"github.com/suse/groot-btrfs/tarstream"
-	"github.com/suse/groot-btrfs/volume"
 	"github.com/urfave/cli"
+	"os"
+	"path/filepath"
 )
 
 func main() {
-	driver := driver.New(hcs.NewClient(), tarstream.New(), &privilege.Elevator{}, &volume.Limiter{})
+	var btrfsProgsPath string
+
+	driverConfig := driver.DriverConfig{}
 
 	driverFlags := []cli.Flag{
 		cli.StringFlag{
-			Name:        "volumes-dir-name",
+			Name:        "store-path",
 			Value:       "",
+			Usage:       "Store path",
+			Destination: &driverConfig.StorePath,
+		},
+		cli.StringFlag{
+			Name:        "volumes-dir-Name",
+			Value:       "volumes",
 			Usage:       "Volumes directory name",
-			Destination: &driver.VolumesDirName,
+			Destination: &driverConfig.VolumesDirName,
 		},
 
 		cli.StringFlag{
-			Name:  "store",
-			Value: "",
-			Usage: "ignored for backward compatibility with Guardian",
+			Name:        "btrfs-progs-path",
+			Value:       "",
+			Usage:       "The path to btrfs progs",
+			Destination: &btrfsProgsPath,
+		},
+
+		cli.StringFlag{
+			Name:        "drax-bin",
+			Value:       "",
+			Usage:       "The path to the drax cli binary",
+			Destination: &driverConfig.DraxBinPath,
 		}}
+
+	driverConfig.BtrfsBinPath = filepath.Join(btrfsProgsPath, "btrfs")
+	driverConfig.MkfsBinPath = filepath.Join(btrfsProgsPath, "mkfs.btrfs")
+
+	driver := driver.NewDriver(&driverConfig)
+
 	groot.Run(driver, os.Args, driverFlags)
 }
