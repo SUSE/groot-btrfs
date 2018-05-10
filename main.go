@@ -11,7 +11,7 @@ import (
 func main() {
 	var btrfsProgsPath string
 
-	driverConfig := driver.DriverConfig{}
+	driverConfig := &driver.DriverConfig{}
 
 	driverFlags := []cli.Flag{
 		cli.StringFlag{
@@ -44,7 +44,7 @@ func main() {
 	driverConfig.BtrfsBinPath = filepath.Join(btrfsProgsPath, "btrfs")
 	driverConfig.MkfsBinPath = filepath.Join(btrfsProgsPath, "mkfs.btrfs")
 
-	driver := driver.NewDriver(&driverConfig)
+	driver := driver.NewDriver(driverConfig)
 
 	groot.Run(driver, os.Args, driverFlags)
 }

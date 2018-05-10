@@ -1,25 +1,15 @@
 package driver
 
-// import "code.cloudfoundry.org/grootfs/store/filesystems/btrfs"
-
 import (
-//	"bytes"
-//	"encoding/json"
-//	"fmt"
-//	"io/ioutil"
-//	"os"
-//	"os/exec"
-//	"path"
-//	"path/filepath"
-//	"regexp"
-//	"strconv"
-//	"strings"
-//
-//	"github.com/tscolari/lagregator"
-//
-//	"code.cloudfoundry.org/groot"
-//	"code.cloudfoundry.org/lager"
-//	errorspkg "github.com/pkg/errors"
+	"bytes"
+	"code.cloudfoundry.org/lager"
+	errorspkg "github.com/pkg/errors"
+	"github.com/tscolari/lagregator"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -27,11 +17,7 @@ const (
 )
 
 type Driver struct {
-	volumesDirName string
-	draxBinPath    string
-	btrfsBinPath   string
-	mkfsBinPath    string
-	storePath      string
+	conf *DriverConfig
 }
 
 type DriverConfig struct {
@@ -43,39 +29,84 @@ type DriverConfig struct {
 }
 
 func NewDriver(conf *DriverConfig) *Driver {
-	return &Driver{
-		volumesDirName: conf.VolumesDirName,
-		btrfsBinPath:   conf.BtrfsBinPath,
-		mkfsBinPath:    conf.MkfsBinPath,
-		draxBinPath:    conf.DraxBinPath,
-		storePath:      conf.StorePath,
-	}
+	return &Driver{conf: conf}
 }
 
-/*func (d *Driver) applyDiskLimit(logger lager.Logger, spec image_cloner.ImageDriverSpec) error {
-	logger = logger.Session("applying-quotas", lager.Data{"spec": spec})
+func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {
+	logger = logger.Session("applying-quotas", lager.Data{"diskLimit": diskLimit})
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	if spec.DiskLimit == 0 {
+	if diskLimit == 0 {
 		logger.Debug("no-need-for-quotas")
 		return nil
 	}
 
 	args := []string{
-		"--btrfs-bin", d.btrfsBinPath,
+		"--btrfs-bin", d.conf.BtrfsBinPath,
 		"limit",
-		"--volume-path", filepath.Join(spec.ImagePath, "rootfs"),
-		"--disk-limit-bytes", strconv.FormatInt(spec.DiskLimit, 10),
+		"--volume-path", filepath.Join(d.conf.StorePath, "rootfs"),
+		"--disk-limit-bytes", strconv.FormatInt(diskLimit, 10),
 	}
 
-	if spec.ExclusiveDiskLimit {
-		args = append(args, "--exclude-image-from-quota")
-	}
+	/*
+		if spec.ExclusiveDiskLimit {
+			args = append(args, "--exclude-image-from-quota")
+		}
+	*/
 
 	if _, err := d.runDrax(logger, args...); err != nil {
 		return err
 	}
 
 	return nil
-}*/
+}
+
+func (d *Driver) runDrax(logger lager.Logger, args ...string) (*bytes.Buffer, error) {
+	logger = logger.Session("run-drax", lager.Data{"args": args})
+	logger.Debug("starting")
+	defer logger.Debug("ending")
+
+	if !d.draxInPath() {
+		return nil, errorspkg.New("drax was not found in the $PATH")
+	}
+
+	if !d.hasSUID() && os.Geteuid() != 0 {
+		return nil, errorspkg.New("missing the setuid bit on drax")
+	}
+
+	cmd := exec.Command(d.conf.DraxBinPath, args...)
+	stdoutBuffer := bytes.NewBuffer([]byte{})
+	cmd.Stdout = stdoutBuffer
+	cmd.Stderr = lagregator.NewRelogger(logger)
+
+	logger.Debug("starting-drax", lager.Data{"path": cmd.Path, "args": cmd.Args})
+	err := cmd.Run()
+
+	if err != nil {
+		logger.Error("drax-failed", err)
+		return nil, errorspkg.Wrapf(err, " %s", strings.TrimSpace(stdoutBuffer.String()))
+	}
+
+	return stdoutBuffer, nil
+}
+
+func (d *Driver) draxInPath() bool {
+	if _, err := exec.LookPath(d.conf.DraxBinPath); err != nil {
+		return false
+	}
+	return true
+}
+
+func (d *Driver) hasSUID() bool {
+	path, err := exec.LookPath(d.conf.DraxBinPath)
+	if err != nil {
+		return false
+	}
+	// If LookPath succeeds Stat cannot fail
+	draxInfo, _ := os.Stat(path)
+	if (draxInfo.Mode() & os.ModeSetuid) == 0 {
+		return false
+	}
+	return true
+}
