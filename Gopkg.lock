@@ -28,7 +28,10 @@
 
 [[projects]]
   name = "code.cloudfoundry.org/lager"
-  packages = ["."]
+  packages = [
+    ".",
+    "chug"
+  ]
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
   version = "v1.0.0"
 
@@ -181,6 +184,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/tscolari/lagregator"
+  packages = ["."]
+  revision = "b0fb43b018612a8bd982718843b52dac263a21a8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/urfave/cli"
   packages = ["."]
   revision = "8e01ec4cd3e2d84ab2fe90d8210528ffbb06d8ff"
@@ -218,6 +227,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c36f1b81f9f6f291b037ffefb3f838691efce370cfb81b704a2e375daaa88d02"
+  inputs-digest = "90d1aa0bf59373ea655698db30273a3ecf8eaeb54fa0649e9fa24e0d20347185"
   solver-name = "gps-cdcl"
   solver-version = 1

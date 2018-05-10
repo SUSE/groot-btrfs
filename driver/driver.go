@@ -51,3 +51,31 @@ func NewDriver(conf *DriverConfig) *Driver {
 		storePath:      conf.StorePath,
 	}
 }
+
+/*func (d *Driver) applyDiskLimit(logger lager.Logger, spec image_cloner.ImageDriverSpec) error {
+	logger = logger.Session("applying-quotas", lager.Data{"spec": spec})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	if spec.DiskLimit == 0 {
+		logger.Debug("no-need-for-quotas")
+		return nil
+	}
+
+	args := []string{
+		"--btrfs-bin", d.btrfsBinPath,
+		"limit",
+		"--volume-path", filepath.Join(spec.ImagePath, "rootfs"),
+		"--disk-limit-bytes", strconv.FormatInt(spec.DiskLimit, 10),
+	}
+
+	if spec.ExclusiveDiskLimit {
+		args = append(args, "--exclude-image-from-quota")
+	}
+
+	if _, err := d.runDrax(logger, args...); err != nil {
+		return err
+	}
+
+	return nil
+}*/
