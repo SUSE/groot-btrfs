@@ -10,11 +10,22 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
+	"unsafe"
 )
 
 const (
-	BtrfsType = 0x9123683E
+	BtrfsType               = 0x9123683E
+	utimeOmit         int64 = ((1 << 30) - 2)
+	atSymlinkNoFollow int   = 0x100
 )
+
+type IDMappingSpec struct {
+	HostID      int
+	NamespaceID int
+	Size        int
+}
 
 type Driver struct {
 	conf *DriverConfig
@@ -109,4 +120,36 @@ func (d *Driver) hasSUID() bool {
 		return false
 	}
 	return true
+}
+
+func changeModTime(path string, modTime time.Time) error {
+	var _path *byte
+	_path, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return err
+	}
+
+	ts := []syscall.Timespec{
+		syscall.Timespec{Sec: 0, Nsec: utimeOmit},
+		syscall.NsecToTimespec(modTime.UnixNano()),
+	}
+
+	atFdCwd := -100
+	_, _, errno := syscall.Syscall6(
+		syscall.SYS_UTIMENSAT,
+		uintptr(atFdCwd),
+		uintptr(unsafe.Pointer(_path)),
+		uintptr(unsafe.Pointer(&ts[0])),
+		uintptr(atSymlinkNoFollow),
+		0, 0,
+	)
+	if errno == syscall.ENOSYS {
+		return os.Chtimes(path, time.Now(), modTime)
+	}
+
+	if errno != 0 {
+		return errno
+	}
+
+	return nil
 }
