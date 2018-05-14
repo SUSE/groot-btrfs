@@ -42,6 +42,11 @@ func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string,
 		return 0, errors.Wrap(err, "failed to chroot")
 	}
 
+	// Create /tmp directory
+	if err := os.MkdirAll("/tmp", 777); err != nil {
+		return 0, errors.Wrap(err, "could not create /tmp directory in chroot")
+	}
+
 	tarReader := tar.NewReader(layerTar)
 	opaqueWhiteouts := []string{}
 	var totalBytesUnpacked int64
