@@ -21,12 +21,6 @@ const (
 	atSymlinkNoFollow int   = 0x100
 )
 
-type IDMappingSpec struct {
-	HostID      int
-	NamespaceID int
-	Size        int
-}
-
 type Driver struct {
 	conf *DriverConfig
 }
@@ -37,10 +31,30 @@ type DriverConfig struct {
 	MkfsBinPath    string
 	DraxBinPath    string
 	StorePath      string
+	UIDMapping     []string
+	GIDMapping     []string
 }
 
 func NewDriver(conf *DriverConfig) *Driver {
 	return &Driver{conf: conf}
+}
+
+func (d *Driver) UIDMappings() (MappingList, error) {
+	UIDMapping, err := NewMappingList(d.conf.UIDMapping)
+	if err != nil {
+		return nil, err
+	}
+
+	return UIDMapping, nil
+}
+
+func (d *Driver) GIDMappings() (MappingList, error) {
+	GIDMapping, err := NewMappingList(d.conf.GIDMapping)
+	if err != nil {
+		return nil, err
+	}
+
+	return GIDMapping, nil
 }
 
 func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {

@@ -3,7 +3,6 @@ package driver
 import (
 	"archive/tar"
 	"code.cloudfoundry.org/lager"
-	"fmt"
 	"github.com/pkg/errors"
 	"io"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
-	//"code.cloudfoundry.org/groot"
-	"github.com/urfave/cli"
 )
 
 type UnpackStrategy struct {
@@ -20,12 +17,7 @@ type UnpackStrategy struct {
 	WhiteoutDevicePath string
 }
 
-//func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackSpec) (base_image_puller.UnpackOutput, error) {
 func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
-	// TODO: Remove this debug output:
-	fmt.Printf("%+v\n", layerID)
-	fmt.Printf("%+v\n", parentIDs)
-
 	logger = logger.Session("unpacking-with-tar", lager.Data{"layerID": layerID})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -149,25 +141,6 @@ func (d *Driver) handleEntry(logger lager.Logger, entryPath string, tarReader *t
 	return entrySize, nil
 }
 
-func (d *Driver) idMappings(logger lager.Logger) ([]IDMappingSpec, []IDMappingSpec, error) {
-	storeNamespacer := NewStoreNamespacer(d.conf.StorePath)
-
-	// TODO: Remove this?
-	//manager := manager.New(storePath, storeNamespacer, driver, driver, driver)
-	//if !manager.IsStoreInitialized(logger) {
-	//	logger.Error("store-verification-failed", errors.New("store is not initialized"))
-	//	return cli.NewExitError("Store path is not initialized. Please run init-store.", 1)
-	//}
-
-	mappings, err := storeNamespacer.Read()
-	if err != nil {
-		logger.Error("reading-namespace-file", err)
-		return []IDMappingSpec{}, []IDMappingSpec{}, cli.NewExitError(err.Error(), 1)
-	}
-
-	return mappings.UIDMappings, mappings.GIDMappings, nil
-}
-
 func (d *Driver) createLink(logger lager.Logger, path string, tarHeader *tar.Header) error {
 	return os.Link(tarHeader.Linkname, path)
 }
@@ -188,13 +161,18 @@ func (d *Driver) createSymlink(logger lager.Logger, path string, tarHeader *tar.
 	}
 
 	if os.Getuid() == 0 {
-		UIDMappings, GIDMappings, err := d.idMappings(logger)
+		UIDMappings, err := d.UIDMappings()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Can't map UID: %s", err.Error())
 		}
 
-		uid := translateID(tarHeader.Uid, UIDMappings)
-		gid := translateID(tarHeader.Gid, GIDMappings)
+		GIDMappings, err := d.UIDMappings()
+		if err != nil {
+			return errors.Wrapf(err, "Can't map GID: %s", err.Error())
+		}
+
+		uid := UIDMappings.Map(tarHeader.Uid)
+		gid := GIDMappings.Map(tarHeader.Gid)
 
 		if err := os.Lchown(path, uid, gid); err != nil {
 			return errors.Wrapf(err, "chowning link %d:%d `%s`", uid, gid, path)
@@ -202,34 +180,6 @@ func (d *Driver) createSymlink(logger lager.Logger, path string, tarHeader *tar.
 	}
 
 	return nil
-}
-
-func translateID(id int, mappings []IDMappingSpec) int {
-	if id == 0 {
-		return translateRootID(mappings)
-	}
-
-	for _, mapping := range mappings {
-		if mapping.Size == 1 {
-			continue
-		}
-
-		if id >= mapping.NamespaceID && id < mapping.NamespaceID+mapping.Size {
-			return mapping.HostID + id - 1
-		}
-	}
-
-	return id
-}
-
-func translateRootID(mappings []IDMappingSpec) int {
-	for _, mapping := range mappings {
-		if mapping.Size == 1 {
-			return mapping.HostID
-		}
-	}
-
-	return 0
 }
 
 func (d *Driver) createDirectory(logger lager.Logger, path string, tarHeader *tar.Header) error {
@@ -247,13 +197,19 @@ func (d *Driver) createDirectory(logger lager.Logger, path string, tarHeader *ta
 	}
 
 	if os.Getuid() == 0 {
-		UIDMappings, GIDMappings, err := d.idMappings(logger)
+		UIDMappings, err := d.UIDMappings()
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Can't map UID: %s", err.Error())
 		}
 
-		uid := translateID(tarHeader.Uid, UIDMappings)
-		gid := translateID(tarHeader.Gid, GIDMappings)
+		GIDMappings, err := d.UIDMappings()
+		if err != nil {
+			return errors.Wrapf(err, "Can't map GID: %s", err.Error())
+		}
+
+		uid := UIDMappings.Map(tarHeader.Uid)
+		gid := GIDMappings.Map(tarHeader.Gid)
+
 		if err := os.Chown(path, uid, gid); err != nil {
 			return errors.Wrapf(err, "chowning directory %d:%d `%s`", uid, gid, path)
 		}
@@ -295,13 +251,19 @@ func (d *Driver) createRegularFile(logger lager.Logger, path string, tarHeader *
 	}
 
 	if os.Getuid() == 0 {
-		UIDMappings, GIDMappings, err := d.idMappings(logger)
+		UIDMappings, err := d.UIDMappings()
 		if err != nil {
-			return 0, err
+			return 0, errors.Wrapf(err, "Can't map UID: %s", err.Error())
 		}
 
-		uid := translateID(tarHeader.Uid, UIDMappings)
-		gid := translateID(tarHeader.Gid, GIDMappings)
+		GIDMappings, err := d.UIDMappings()
+		if err != nil {
+			return 0, errors.Wrapf(err, "Can't map GID: %s", err.Error())
+		}
+
+		uid := UIDMappings.Map(tarHeader.Uid)
+		gid := GIDMappings.Map(tarHeader.Gid)
+
 		if err := os.Chown(path, uid, gid); err != nil {
 			return 0, errors.Wrapf(err, "chowning file %d:%d `%s`", uid, gid, path)
 		}
