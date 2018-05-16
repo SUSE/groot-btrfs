@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+
+	grootfsgroot "code.cloudfoundry.org/grootfs/groot"
 )
 
 type MappingList []specs.LinuxIDMapping
@@ -47,4 +49,18 @@ func (m MappingList) String() string {
 	}
 
 	return strings.Join(parts, ",")
+}
+
+func MappingListToIDMappingSpec(m MappingList) []grootfsgroot.IDMappingSpec {
+	result := make([]grootfsgroot.IDMappingSpec, len(m))
+
+	for i, v := range m {
+		result[i] = grootfsgroot.IDMappingSpec{
+			HostID:      int(v.HostID),
+			NamespaceID: int(v.ContainerID),
+			Size:        int(v.Size),
+		}
+	}
+
+	return result
 }

@@ -2,14 +2,20 @@ package driver
 
 import (
 	"archive/tar"
-	"code.cloudfoundry.org/lager"
-	"github.com/pkg/errors"
+	"fmt"
 	"io"
+	"math/rand"
 	"os"
+	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
+	"time"
+
+	"code.cloudfoundry.org/grootfs/base_image_puller"
+	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
+	"code.cloudfoundry.org/lager"
+	"github.com/pkg/errors"
 )
 
 type UnpackStrategy struct {
@@ -17,68 +23,197 @@ type UnpackStrategy struct {
 	WhiteoutDevicePath string
 }
 
-func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
-	logger = logger.Session("unpacking-with-tar", lager.Data{"layerID": layerID})
-	logger.Info("starting")
-	defer logger.Info("ending")
+func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) error {
+	logger = logger.Session("unpacking-layer", lager.Data{"LayerInfo": "TODO"})
+	logger.Debug("starting")
+	defer logger.Debug("ending")
 
-	outputDir := filepath.Join(d.conf.StorePath, layerID)
-
-	if err := safeMkdir(outputDir, 0755); err != nil {
-		return 0, err
+	tempVolumeName, volumePath, err := d.createTemporaryVolumeDirectory(logger, layerID, parentIDs)
+	if err != nil {
+		return err
 	}
 
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-	if err := chroot(outputDir); err != nil {
-		return 0, errors.Wrap(err, "failed to chroot")
+	uidMappings, err := d.UIDMappings()
+	if err != nil {
+		return err
 	}
 
-	// Create /tmp directory
-	if err := os.MkdirAll("/tmp", 777); err != nil {
-		return 0, errors.Wrap(err, "could not create /tmp directory in chroot")
+	gidMappings, err := d.GIDMappings()
+	if err != nil {
+		return err
 	}
 
-	tarReader := tar.NewReader(layerTar)
-	opaqueWhiteouts := []string{}
-	var totalBytesUnpacked int64
-	for {
-		tarHeader, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return 0, err
+	unpackSpec := base_image_puller.UnpackSpec{
+		TargetPath:    volumePath,
+		Stream:        stream,
+		UIDMappings:   MappingListToIDMappingSpec(uidMappings),
+		GIDMappings:   MappingListToIDMappingSpec(gidMappings),
+		BaseDirectory: "", // TODO: is this ok? Looks like groot-windows doesn't use this?
+	}
+
+	volSize, err := d.unpackLayerToTemporaryDirectory(logger, unpackSpec, layerID, parentIDs)
+	if err != nil {
+		return err
+	}
+
+	return d.finalizeVolume(logger, tempVolumeName, volumePath, layerID, volSize)
+}
+
+func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID string, parentIDs []string) (string, string, error) {
+	tempVolumeName := fmt.Sprintf("%s-incomplete-%d-%d", layerID, time.Now().UnixNano(), rand.Int())
+	volumePath, err := d.CreateVolume(logger,
+		layerInfo.ParentChainID,
+		tempVolumeName,
+	)
+
+	if err != nil {
+		return "", "", errorspkg.Wrapf(err, "creating volume for layer `%s`", layerInfo)
+	}
+	logger.Debug("volume-created", lager.Data{"volumePath": volumePath})
+
+	if spec.OwnerUID != 0 || spec.OwnerGID != 0 {
+		err = os.Chown(volumePath, spec.OwnerUID, spec.OwnerGID)
+		if err != nil {
+			return "", "", errorspkg.Wrapf(err, "changing volume ownership to %d:%d", spec.OwnerUID, spec.OwnerGID)
 		}
+	}
 
-		// We need this BaseDirectory: layer.Annotations[cfBaseDirectoryAnnotation],
-		// https://github.com/cloudfoundry/grootfs/blob/master/fetcher/layer_fetcher/layer_fetcher.go#L19
-		// For that, we need to get the layerInfo using the layerID
-		//entryPath := filepath.Join(spec.BaseDirectory, tarHeader.Name)
-		// TODO: Fix this
-		entryPath := filepath.Join("/", tarHeader.Name)
+	return tempVolumeName, volumePath, nil
+}
 
-		if strings.Contains(tarHeader.Name, ".wh..wh..opq") {
-			opaqueWhiteouts = append(opaqueWhiteouts, entryPath)
-			continue
-		}
+func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath, chainID string, volSize int64) error {
+	if err := p.volumeDriver.WriteVolumeMeta(logger, chainID, VolumeMeta{Size: volSize}); err != nil {
+		return errorspkg.Wrapf(err, "writing volume `%s` metadata", chainID)
+	}
 
-		if strings.Contains(tarHeader.Name, ".wh.") {
-			if err := removeWhiteout(entryPath); err != nil {
-				return 0, err
-			}
-			continue
-		}
+	finalVolumePath := strings.Replace(volumePath, tempVolumeName, chainID, 1)
+	if err := p.volumeDriver.MoveVolume(logger, volumePath, finalVolumePath); err != nil {
+		return errorspkg.Wrapf(err, "failed to move volume to its final location")
+	}
 
-		entrySize, err := d.handleEntry(logger, entryPath, tarReader, tarHeader)
+	return nil
+}
+
+func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec UnpackSpec, layerInfo, parentLayerInfo groot.LayerInfo) (volSize int64, err error) {
+	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
+
+	if unpackSpec.BaseDirectory != "" {
+		parentPath, err := p.volumeDriver.VolumePath(logger, parentLayerInfo.ChainID)
 		if err != nil {
 			return 0, err
 		}
 
-		totalBytesUnpacked += entrySize
+		if err := ensureBaseDirectoryExists(unpackSpec.BaseDirectory, unpackSpec.TargetPath, parentPath); err != nil {
+			return 0, err
+		}
 	}
 
-	return totalBytesUnpacked, nil
-	// TODO: Do we need to process whiteouts further?
+	var unpackOutput UnpackOutput
+	if unpackOutput, err = p.unpacker.Unpack(logger, unpackSpec); err != nil {
+		if errD := p.volumeDriver.DestroyVolume(logger, layerInfo.ChainID); errD != nil {
+			logger.Error("volume-cleanup-failed", errD)
+		}
+		return 0, errorspkg.Wrapf(err, "unpacking layer `%s`", layerInfo.BlobID)
+	}
+
+	if err := p.volumeDriver.HandleOpaqueWhiteouts(logger, path.Base(unpackSpec.TargetPath), unpackOutput.OpaqueWhiteouts); err != nil {
+		logger.Error("handling-opaque-whiteouts", err)
+		return 0, errorspkg.Wrap(err, "handling opaque whiteouts")
+	}
+
+	logger.Debug("layer-unpacked")
+	return unpackOutput.BytesWritten, nil
+}
+
+func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
+	tarUnpacker, err := unpacker.NewTarUnpacker(
+		unpacker.UnpackStrategy{
+			Name:               "btrfs",
+			WhiteoutDevicePath: path.Join(d.conf.StorePath, "whiteout_dev"),
+		},
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	unpackSpec := base_image_puller.UnpackSpec{
+		TargetPath:    d.conf.StorePath,
+		Stream:        layerTar,
+		UIDMappings:   d.conf.UIDMapping,
+		GIDMappings:   d.conf.GIDMapping,
+		BaseDirectory: layerInfo.BaseDirectory,
+	}
+
+	a, err := tarUnpacker.Unpack(logger)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return a.BytesWritten, nil
+
+	//	logger = logger.Session("unpacking-with-tar", lager.Data{"layerID": layerID})
+	//	logger.Info("starting")
+	//	defer logger.Info("ending")
+
+	//	outputDir := filepath.Join(d.conf.StorePath, layerID)
+
+	//	if err := safeMkdir(outputDir, 0755); err != nil {
+	//		return 0, err
+	//	}
+
+	//	runtime.LockOSThread()
+	//	defer runtime.UnlockOSThread()
+	//	if err := chroot(outputDir); err != nil {
+	//		return 0, errors.Wrap(err, "failed to chroot")
+	//	}
+
+	//	// Create /tmp directory
+	//	if err := os.MkdirAll("/tmp", 777); err != nil {
+	//		return 0, errors.Wrap(err, "could not create /tmp directory in chroot")
+	//	}
+
+	//	tarReader := tar.NewReader(layerTar)
+	//	opaqueWhiteouts := []string{}
+	//	var totalBytesUnpacked int64
+	//	for {
+	//		tarHeader, err := tarReader.Next()
+	//		if err == io.EOF {
+	//			break
+	//		} else if err != nil {
+	//			return 0, err
+	//		}
+
+	//		// We need this BaseDirectory: layer.Annotations[cfBaseDirectoryAnnotation],
+	//		// https://github.com/cloudfoundry/grootfs/blob/master/fetcher/layer_fetcher/layer_fetcher.go#L19
+	//		// For that, we need to get the layerInfo using the layerID
+	//		//entryPath := filepath.Join(spec.BaseDirectory, tarHeader.Name)
+	//		// TODO: Fix this
+	//		entryPath := filepath.Join("/", tarHeader.Name)
+
+	//		if strings.Contains(tarHeader.Name, ".wh..wh..opq") {
+	//			opaqueWhiteouts = append(opaqueWhiteouts, entryPath)
+	//			continue
+	//		}
+
+	//		if strings.Contains(tarHeader.Name, ".wh.") {
+	//			if err := removeWhiteout(entryPath); err != nil {
+	//				return 0, err
+	//			}
+	//			continue
+	//		}
+
+	//		entrySize, err := d.handleEntry(logger, entryPath, tarReader, tarHeader)
+	//		if err != nil {
+	//			return 0, err
+	//		}
+
+	//		totalBytesUnpacked += entrySize
+	//	}
+
+	//	return totalBytesUnpacked, nil
+	//	// TODO: Do we need to process whiteouts further?
 }
 
 func safeMkdir(path string, perm os.FileMode) error {
