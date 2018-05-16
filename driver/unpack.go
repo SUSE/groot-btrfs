@@ -3,7 +3,6 @@ package driver
 import (
 	"archive/tar"
 	"fmt"
-	errorspkg "github.com/pkg/errors"
 	"io"
 	"math/rand"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	errorspkg "github.com/pkg/errors"
 
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
@@ -24,24 +25,24 @@ type UnpackStrategy struct {
 	WhiteoutDevicePath string
 }
 
-func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) error {
+func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
 	logger = logger.Session("unpacking-layer", lager.Data{"LayerInfo": "TODO"})
 	logger.Debug("starting")
 	defer logger.Debug("ending")
 
 	tempVolumeName, volumePath, err := d.createTemporaryVolumeDirectory(logger, layerID, parentIDs)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	uidMappings, err := d.UIDMappings()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	gidMappings, err := d.GIDMappings()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	unpackSpec := base_image_puller.UnpackSpec{
@@ -54,10 +55,10 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 
 	volSize, err := d.unpackLayerToTemporaryDirectory(logger, unpackSpec, layerID, parentIDs)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return d.finalizeVolume(logger, tempVolumeName, volumePath, layerID, volSize)
+	return volSize, d.finalizeVolume(logger, tempVolumeName, volumePath, layerID, volSize)
 }
 
 func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID string, parentIDs []string) (string, string, error) {
@@ -99,18 +100,19 @@ func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath,
 	}
 
 	finalVolumePath := strings.Replace(volumePath, tempVolumeName, chainID, 1)
-	if err := p.volumeDriver.MoveVolume(logger, volumePath, finalVolumePath); err != nil {
+	if err := d.MoveVolume(logger, volumePath, finalVolumePath); err != nil {
 		return errorspkg.Wrapf(err, "failed to move volume to its final location")
 	}
 
 	return nil
 }
 
-func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec UnpackSpec, layerInfo, parentLayerInfo groot.LayerInfo) (volSize int64, err error) {
-	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
+func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec base_image_puller.UnpackSpec, layerID string, parentIDs []string) (volSize int64, err error) {
+	// TODO: add metrics back to the implementation
+	//	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
 
 	if unpackSpec.BaseDirectory != "" {
-		parentPath, err := p.volumeDriver.VolumePath(logger, parentLayerInfo.ChainID)
+		parentPath, err := d.VolumePath(logger, parentIDs[len(parentIDs)-1])
 		if err != nil {
 			return 0, err
 		}
@@ -120,15 +122,24 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 		}
 	}
 
-	var unpackOutput UnpackOutput
-	if unpackOutput, err = p.unpacker.Unpack(logger, unpackSpec); err != nil {
-		if errD := p.volumeDriver.DestroyVolume(logger, layerInfo.ChainID); errD != nil {
+	var unpackOutput base_image_puller.UnpackOutput
+
+	// SUSE: Always create a tar unpacker
+	tarUnpacker, err := unpacker.NewTarUnpacker(
+		unpacker.UnpackStrategy{
+			Name:               "btrfs",
+			WhiteoutDevicePath: path.Join(d.conf.StorePath, "whiteout_dev"),
+		},
+	)
+
+	if unpackOutput, err = tarUnpacker.Unpack(logger, unpackSpec); err != nil {
+		if errD := d.DestroyVolume(logger, layerID); errD != nil {
 			logger.Error("volume-cleanup-failed", errD)
 		}
-		return 0, errorspkg.Wrapf(err, "unpacking layer `%s`", layerInfo.BlobID)
+		return 0, errorspkg.Wrapf(err, "unpacking layer `%s`", layerID)
 	}
 
-	if err := p.volumeDriver.HandleOpaqueWhiteouts(logger, path.Base(unpackSpec.TargetPath), unpackOutput.OpaqueWhiteouts); err != nil {
+	if err := d.HandleOpaqueWhiteouts(logger, path.Base(unpackSpec.TargetPath), unpackOutput.OpaqueWhiteouts); err != nil {
 		logger.Error("handling-opaque-whiteouts", err)
 		return 0, errorspkg.Wrap(err, "handling opaque whiteouts")
 	}
@@ -137,33 +148,42 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	return unpackOutput.BytesWritten, nil
 }
 
+func ensureBaseDirectoryExists(baseDir, childPath, parentPath string) error {
+	if baseDir == string(filepath.Separator) {
+		return nil
+	}
+
+	if err := ensureBaseDirectoryExists(filepath.Dir(baseDir), childPath, parentPath); err != nil {
+		return err
+	}
+
+	stat, err := os.Stat(filepath.Join(childPath, baseDir))
+	if err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return errorspkg.Wrapf(err, "failed to stat base directory")
+	}
+
+	stat, err = os.Stat(filepath.Join(parentPath, baseDir))
+	if err != nil {
+		return errorspkg.Wrapf(err, "base directory not found in parent layer")
+	}
+
+	fullChildBaseDir := filepath.Join(childPath, baseDir)
+	if err := os.Mkdir(fullChildBaseDir, stat.Mode()); err != nil {
+		return errorspkg.Wrapf(err, "could not create base directory in child layer")
+	}
+
+	stat_t := stat.Sys().(*syscall.Stat_t)
+	if err := os.Chown(fullChildBaseDir, int(stat_t.Uid), int(stat_t.Gid)); err != nil {
+		return errorspkg.Wrapf(err, "could not chown base directory")
+	}
+
+	return nil
+}
+
 func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
-	tarUnpacker, err := unpacker.NewTarUnpacker(
-		unpacker.UnpackStrategy{
-			Name:               "btrfs",
-			WhiteoutDevicePath: path.Join(d.conf.StorePath, "whiteout_dev"),
-		},
-	)
-
-	if err != nil {
-		return 0, err
-	}
-
-	unpackSpec := base_image_puller.UnpackSpec{
-		TargetPath:    d.conf.StorePath,
-		Stream:        layerTar,
-		UIDMappings:   d.conf.UIDMapping,
-		GIDMappings:   d.conf.GIDMapping,
-		BaseDirectory: layerInfo.BaseDirectory,
-	}
-
-	a, err := tarUnpacker.Unpack(logger)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return a.BytesWritten, nil
+	return d.unpackLayer(logger, layerID, parentIDs, layerTar.(io.ReadCloser))
 
 	//	logger = logger.Session("unpacking-with-tar", lager.Data{"layerID": layerID})
 	//	logger.Info("starting")

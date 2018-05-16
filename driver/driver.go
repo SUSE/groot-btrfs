@@ -2,18 +2,22 @@ package driver
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/grootfs/store/filesystems"
-	"code.cloudfoundry.org/lager"
-	errorspkg "github.com/pkg/errors"
-	"github.com/tscolari/lagregator"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 	"unsafe"
+
+	"code.cloudfoundry.org/grootfs/base_image_puller"
+	"code.cloudfoundry.org/grootfs/store/filesystems"
+	"code.cloudfoundry.org/lager"
+	errorspkg "github.com/pkg/errors"
+	"github.com/tscolari/lagregator"
 )
 
 const (
@@ -218,4 +222,102 @@ func (d *Driver) WriteVolumeMeta(logger lager.Logger, id string, metadata base_i
 	defer logger.Debug("ending")
 
 	return filesystems.WriteVolumeMeta(logger, d.conf.StorePath, id, metadata)
+}
+
+func (d *Driver) MoveVolume(logger lager.Logger, from, to string) error {
+	logger = logger.Session("btrfs-moving-volume", lager.Data{"from": from, "to": to})
+	logger.Debug("starting")
+	defer logger.Debug("ending")
+
+	if err := os.Rename(from, to); err != nil {
+		if !os.IsExist(err) {
+			logger.Error("moving-volume-failed", err)
+			return errorspkg.Wrap(err, "moving volume")
+		}
+	}
+
+	return nil
+}
+
+func (d *Driver) VolumePath(logger lager.Logger, id string) (string, error) {
+	volPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, id)
+	_, err := os.Stat(volPath)
+	if err == nil {
+		return volPath, nil
+	}
+
+	return "", errorspkg.Wrapf(err, "volume does not exist `%s`", id)
+}
+
+func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
+	logger = logger.Session("btrfs-destroying-volume", lager.Data{"volumeID": id})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	volumeMetaFilePath := filesystems.VolumeMetaFilePath(d.conf.StorePath, id)
+	if err := os.Remove(volumeMetaFilePath); err != nil {
+		logger.Error("deleting-metadata-file-failed", err, lager.Data{"path": volumeMetaFilePath})
+	}
+
+	return d.destroyBtrfsVolume(logger, filepath.Join(d.conf.StorePath, "volumes", id))
+}
+
+func (d *Driver) destroyBtrfsVolume(logger lager.Logger, path string) error {
+	logger = logger.Session("destroying-subvolume", lager.Data{"path": path})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	if _, err := os.Stat(path); err != nil {
+		return errorspkg.Wrap(err, "image path not found")
+	}
+
+	if err := d.destroyQgroup(logger, path); err != nil {
+		logger.Error("destroying-quota-groups-failed", err, lager.Data{
+			"warning": "could not delete quota group"})
+	}
+
+	cmd := exec.Command(d.conf.BtrfsBinPath, "subvolume", "delete", path)
+	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
+	if contents, err := cmd.CombinedOutput(); err != nil {
+		logger.Error("btrfs-failed", err)
+		return errorspkg.Wrapf(err, "destroying volume %s", strings.TrimSpace(string(contents)))
+	}
+	return nil
+}
+
+func cleanWhiteoutDir(path string) error {
+	contents, err := ioutil.ReadDir(path)
+	if err != nil {
+		return errorspkg.Wrap(err, "reading whiteout directory")
+	}
+
+	for _, content := range contents {
+		if err := os.RemoveAll(filepath.Join(path, content.Name())); err != nil {
+			return errorspkg.Wrap(err, "cleaning up whiteout directory")
+		}
+	}
+
+	return nil
+}
+
+func (d *Driver) destroyQgroup(logger lager.Logger, path string) error {
+	_, err := d.runDrax(logger, "--btrfs-bin", d.conf.BtrfsBinPath, "destroy", "--volume-path", path)
+
+	return err
+}
+
+func (d *Driver) HandleOpaqueWhiteouts(logger lager.Logger, id string, opaqueWhiteouts []string) error {
+	volumePath, err := d.VolumePath(logger, id)
+	if err != nil {
+		return err
+	}
+
+	for _, opaqueWhiteout := range opaqueWhiteouts {
+		parentDir := path.Dir(filepath.Join(volumePath, opaqueWhiteout))
+		if err := cleanWhiteoutDir(parentDir); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
