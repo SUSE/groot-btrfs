@@ -1,11 +1,13 @@
 package main
 
 import (
-	"code.cloudfoundry.org/groot"
-	"github.com/suse/groot-btrfs/driver"
-	"github.com/urfave/cli"
 	"os"
 	"path/filepath"
+
+	"github.com/SUSE/groot-btrfs/driver"
+
+	"code.cloudfoundry.org/groot"
+	"github.com/urfave/cli"
 )
 
 func main() {
