@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +21,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 	imagePath := filepath.Join(d.conf.StorePath, store.ImageDirName, bundleID)
 
 	toPath := filepath.Join(imagePath, "rootfs")
+
 	baseVolumePath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, layerIDs[len(layerIDs)-1])
 
 	spec := specs.Spec{
@@ -32,18 +32,15 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		Linux: &specs.Linux{},
 	}
 
-	if err := os.MkdirAll(toPath, 0755); err != nil {
-		logger.Error("creating-rootfs-folder-failed", err, lager.Data{"rootfs": toPath})
-		return specs.Spec{}, errorspkg.Wrap(err, "creating rootfs folder")
+	if err := os.MkdirAll(imagePath, 0755); err != nil {
+		logger.Error("creating-imagepath-folder-failed", err, lager.Data{"imagepath": imagePath})
+		return specs.Spec{}, errorspkg.Wrap(err, "creating imagepath folder")
 	}
 
-	if err := os.Chmod(toPath, 0755); err != nil {
-		logger.Error("chmoding-rootfs-folder", err)
-		return specs.Spec{}, errorspkg.Wrap(err, "chmoding rootfs folder")
+	if err := os.Chmod(imagePath, 0755); err != nil {
+		logger.Error("chmoding-imagepath-folder", err)
+		return specs.Spec{}, errorspkg.Wrap(err, "chmoding imagepath folder")
 	}
-
-	fmt.Println(baseVolumePath)
-	fmt.Println(toPath)
 
 	cmd := exec.Command(d.conf.BtrfsBinPath(), "subvolume", "snapshot", baseVolumePath, toPath)
 	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
