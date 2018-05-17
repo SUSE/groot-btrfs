@@ -32,12 +32,20 @@ type Driver struct {
 
 type DriverConfig struct {
 	VolumesDirName string
-	BtrfsBinPath   string
-	MkfsBinPath    string
-	DraxBinPath    string
-	StorePath      string
-	UIDMapping     []string
-	GIDMapping     []string
+	BtrfsProgsPath string
+
+	DraxBinPath string
+	StorePath   string
+	UIDMapping  []string
+	GIDMapping  []string
+}
+
+func (c *DriverConfig) BtrfsBinPath() string {
+	return filepath.Join(c.BtrfsProgsPath, "btrfs")
+}
+
+func (c *DriverConfig) MkfsBinPath() string {
+	return filepath.Join(c.BtrfsProgsPath, "mkfs.btrfs")
 }
 
 func NewDriver(conf *DriverConfig) *Driver {
@@ -94,7 +102,7 @@ func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {
 	}
 
 	args := []string{
-		"--btrfs-bin", d.conf.BtrfsBinPath,
+		"--btrfs-bin", d.conf.BtrfsBinPath(),
 		"limit",
 		"--volume-path", filepath.Join(d.conf.StorePath, "rootfs"),
 		"--disk-limit-bytes", strconv.FormatInt(diskLimit, 10),
@@ -201,11 +209,12 @@ func (d *Driver) CreateVolume(logger lager.Logger, parentID, id string) (string,
 
 	var cmd *exec.Cmd
 	volPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, id)
+
 	if parentID == "" {
-		cmd = exec.Command(d.conf.BtrfsBinPath, "subvolume", "create", volPath)
+		cmd = exec.Command(d.conf.BtrfsBinPath(), "subvolume", "create", volPath)
 	} else {
 		parentVolPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, parentID)
-		cmd = exec.Command(d.conf.BtrfsBinPath, "subvolume", "snapshot", parentVolPath, volPath)
+		cmd = exec.Command(d.conf.BtrfsBinPath(), "subvolume", "snapshot", parentVolPath, volPath)
 	}
 
 	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
@@ -276,7 +285,7 @@ func (d *Driver) destroyBtrfsVolume(logger lager.Logger, path string) error {
 			"warning": "could not delete quota group"})
 	}
 
-	cmd := exec.Command(d.conf.BtrfsBinPath, "subvolume", "delete", path)
+	cmd := exec.Command(d.conf.BtrfsBinPath(), "subvolume", "delete", path)
 	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
 	if contents, err := cmd.CombinedOutput(); err != nil {
 		logger.Error("btrfs-failed", err)
@@ -301,7 +310,7 @@ func cleanWhiteoutDir(path string) error {
 }
 
 func (d *Driver) destroyQgroup(logger lager.Logger, path string) error {
-	_, err := d.runDrax(logger, "--btrfs-bin", d.conf.BtrfsBinPath, "destroy", "--volume-path", path)
+	_, err := d.runDrax(logger, "--btrfs-bin", d.conf.BtrfsBinPath(), "destroy", "--volume-path", path)
 
 	return err
 }

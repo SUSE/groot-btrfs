@@ -1,11 +1,14 @@
 package driver
 
 import (
-	"code.cloudfoundry.org/lager"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"code.cloudfoundry.org/lager"
+
+	"code.cloudfoundry.org/grootfs/store"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
@@ -16,7 +19,9 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	toPath := filepath.Join(d.conf.StorePath, "rootfs")
+	imagePath := filepath.Join(d.conf.StorePath, store.ImageDirName, bundleID)
+
+	toPath := filepath.Join(imagePath, "rootfs")
 	baseVolumePath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, layerIDs[len(layerIDs)-1])
 
 	spec := specs.Spec{
@@ -27,7 +32,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		Linux: &specs.Linux{},
 	}
 
-	if err := os.Mkdir(toPath, 0755); err != nil {
+	if err := os.MkdirAll(toPath, 0755); err != nil {
 		logger.Error("creating-rootfs-folder-failed", err, lager.Data{"rootfs": toPath})
 		return specs.Spec{}, errorspkg.Wrap(err, "creating rootfs folder")
 	}
@@ -37,18 +42,19 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "chmoding rootfs folder")
 	}
 
-	snapshotPath := filepath.Join(d.conf.StorePath, "snapshot")
-	cmd := exec.Command(d.conf.BtrfsBinPath, "subvolume", "snapshot", baseVolumePath,
-		snapshotPath)
+	fmt.Println(baseVolumePath)
+	fmt.Println(toPath)
+
+	cmd := exec.Command(d.conf.BtrfsBinPath(), "subvolume", "snapshot", baseVolumePath, toPath)
 	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
 	if contents, err := cmd.CombinedOutput(); err != nil {
 		return specs.Spec{}, errorspkg.Errorf(
 			"creating btrfs snapshot from `%s` to `%s` (%s): %s",
-			baseVolumePath, snapshotPath, err, string(contents),
+			baseVolumePath, toPath, err, string(contents),
 		)
 	}
 
-	if err := os.Chmod(snapshotPath, 0755); err != nil {
+	if err := os.Chmod(toPath, 0755); err != nil {
 		logger.Error("chmoding-snapshot", err)
 		return specs.Spec{}, errorspkg.Wrap(err, "chmoding snapshot")
 	}

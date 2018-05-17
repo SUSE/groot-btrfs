@@ -15,7 +15,7 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
-	"github.com/tscolari/lagregator"
+	//	"github.com/tscolari/lagregator"
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/urfave/cli"
@@ -171,8 +171,9 @@ func (u *TarUnpacker) Unpack(logger lager.Logger, spec base_image_puller.UnpackS
 	}
 
 	outputBuffer := bytes.NewBuffer([]byte{})
+
 	cmd := reexec.Command("chroot-unpack", string(unpackSpecJSON), string(strategyJSON))
-	cmd.Stderr = lagregator.NewRelogger(logger)
+	cmd.Stderr = outputBuffer
 	cmd.Stdin = spec.Stream
 	cmd.Stdout = outputBuffer
 

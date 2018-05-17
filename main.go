@@ -1,17 +1,25 @@
 package main
 
 import (
+	"math/rand"
 	"os"
-	"path/filepath"
+	"time"
 
 	"github.com/SUSE/groot-btrfs/driver"
 
 	"code.cloudfoundry.org/groot"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/urfave/cli"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+	if reexec.Init() {
+		os.Exit(0)
+	}
+}
+
 func main() {
-	var btrfsProgsPath string
 
 	driverConfig := &driver.DriverConfig{}
 
@@ -32,7 +40,7 @@ func main() {
 			Name:        "btrfs-progs-path",
 			Value:       "",
 			Usage:       "The path to btrfs progs",
-			Destination: &btrfsProgsPath,
+			Destination: &driverConfig.BtrfsProgsPath,
 		},
 
 		cli.StringFlag{
@@ -51,8 +59,6 @@ func main() {
 		},
 	}
 
-	driverConfig.BtrfsBinPath = filepath.Join(btrfsProgsPath, "btrfs")
-	driverConfig.MkfsBinPath = filepath.Join(btrfsProgsPath, "mkfs.btrfs")
 	driver := driver.NewDriver(driverConfig)
 
 	groot.Run(driver, os.Args, driverFlags)

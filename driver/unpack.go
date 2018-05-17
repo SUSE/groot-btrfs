@@ -46,6 +46,7 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 	}
 
 	unpackSpec := base_image_puller.UnpackSpec{
+
 		TargetPath:    volumePath,
 		Stream:        stream,
 		UIDMappings:   MappingListToIDMappingSpec(uidMappings),
@@ -63,10 +64,13 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 
 func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID string, parentIDs []string) (string, string, error) {
 	tempVolumeName := fmt.Sprintf("%s-incomplete-%d-%d", layerID, time.Now().UnixNano(), rand.Int())
-	volumePath, err := d.CreateVolume(logger,
-		parentIDs[len(parentIDs)-1],
-		tempVolumeName,
-	)
+
+	parentID := ""
+	if len(parentIDs) != 0 {
+		parentID = parentIDs[len(parentIDs)-1]
+	}
+
+	volumePath, err := d.CreateVolume(logger, parentID, tempVolumeName)
 
 	if err != nil {
 		return "", "", errorspkg.Wrapf(err, "creating volume for layer `%s`", layerID)
@@ -112,7 +116,12 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	//	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
 
 	if unpackSpec.BaseDirectory != "" {
-		parentPath, err := d.VolumePath(logger, parentIDs[len(parentIDs)-1])
+		parentID := ""
+		if len(parentIDs) != 0 {
+			parentID = parentIDs[len(parentIDs)-1]
+		}
+
+		parentPath, err := d.VolumePath(logger, parentID)
 		if err != nil {
 			return 0, err
 		}
