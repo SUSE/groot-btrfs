@@ -3,6 +3,7 @@ package driver
 import (
 	"archive/tar"
 	"fmt"
+	errorspkg "github.com/pkg/errors"
 	"io"
 	"math/rand"
 	"os"
@@ -62,19 +63,30 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID string, parentIDs []string) (string, string, error) {
 	tempVolumeName := fmt.Sprintf("%s-incomplete-%d-%d", layerID, time.Now().UnixNano(), rand.Int())
 	volumePath, err := d.CreateVolume(logger,
-		layerInfo.ParentChainID,
+		parentIDs[len(parentIDs)-1],
 		tempVolumeName,
 	)
 
 	if err != nil {
-		return "", "", errorspkg.Wrapf(err, "creating volume for layer `%s`", layerInfo)
+		return "", "", errorspkg.Wrapf(err, "creating volume for layer `%s`", layerID)
 	}
 	logger.Debug("volume-created", lager.Data{"volumePath": volumePath})
 
-	if spec.OwnerUID != 0 || spec.OwnerGID != 0 {
-		err = os.Chown(volumePath, spec.OwnerUID, spec.OwnerGID)
+	UIDMappings, err := d.UIDMappings()
+	if err != nil {
+		return "", "", errors.Wrapf(err, "Can't map UID: %s", err.Error())
+	}
+
+	GIDMappings, err := d.UIDMappings()
+	if err != nil {
+		return "", "", errors.Wrapf(err, "Can't map GID: %s", err.Error())
+	}
+	ownerUID, ownerGID := d.parseOwner(UIDMappings, GIDMappings)
+
+	if ownerUID != 0 || ownerGID != 0 {
+		err = os.Chown(volumePath, ownerUID, ownerGID)
 		if err != nil {
-			return "", "", errorspkg.Wrapf(err, "changing volume ownership to %d:%d", spec.OwnerUID, spec.OwnerGID)
+			return "", "", errorspkg.Wrapf(err, "changing volume ownership to %d:%d", ownerUID, ownerGID)
 		}
 	}
 
@@ -82,7 +94,7 @@ func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID str
 }
 
 func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath, chainID string, volSize int64) error {
-	if err := p.volumeDriver.WriteVolumeMeta(logger, chainID, VolumeMeta{Size: volSize}); err != nil {
+	if err := d.WriteVolumeMeta(logger, chainID, base_image_puller.VolumeMeta{Size: volSize}); err != nil {
 		return errorspkg.Wrapf(err, "writing volume `%s` metadata", chainID)
 	}
 

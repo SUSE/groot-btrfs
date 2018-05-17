@@ -2,6 +2,7 @@ package driver
 
 import (
 	"bytes"
+	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 	"github.com/tscolari/lagregator"
@@ -55,6 +56,27 @@ func (d *Driver) GIDMappings() (MappingList, error) {
 	}
 
 	return GIDMapping, nil
+}
+
+func (d *Driver) parseOwner(uidMappings, gidMappings MappingList) (int, int) {
+	uid := os.Getuid()
+	gid := os.Getgid()
+
+	for _, mapping := range uidMappings {
+		if mapping.Size == 1 && mapping.ContainerID == 0 {
+			uid = int(mapping.HostID)
+			break
+		}
+	}
+
+	for _, mapping := range gidMappings {
+		if mapping.Size == 1 && mapping.ContainerID == 0 {
+			gid = int(mapping.HostID)
+			break
+		}
+	}
+
+	return uid, gid
 }
 
 func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {
@@ -166,4 +188,34 @@ func changeModTime(path string, modTime time.Time) error {
 	}
 
 	return nil
+}
+
+func (d *Driver) CreateVolume(logger lager.Logger, parentID, id string) (string, error) {
+	logger = logger.Session("btrfs-creating-volume", lager.Data{"parentID": parentID, "id": id})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	var cmd *exec.Cmd
+	volPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, id)
+	if parentID == "" {
+		cmd = exec.Command(d.conf.BtrfsBinPath, "subvolume", "create", volPath)
+	} else {
+		parentVolPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, parentID)
+		cmd = exec.Command(d.conf.BtrfsBinPath, "subvolume", "snapshot", parentVolPath, volPath)
+	}
+
+	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
+	if contents, err := cmd.CombinedOutput(); err != nil {
+		return "", errorspkg.Wrapf(err, "creating btrfs volume `%s` %s", volPath, string(contents))
+	}
+
+	return volPath, nil
+}
+
+func (d *Driver) WriteVolumeMeta(logger lager.Logger, id string, metadata base_image_puller.VolumeMeta) error {
+	logger = logger.Session("btrfs-writing-volume-metadata", lager.Data{"volumeID": id})
+	logger.Debug("starting")
+	defer logger.Debug("ending")
+
+	return filesystems.WriteVolumeMeta(logger, d.conf.StorePath, id, metadata)
 }

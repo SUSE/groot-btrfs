@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "code.cloudfoundry.org/commandrunner"
+  packages = ["."]
+  revision = "501fd662150bcea5a42a9b5c1c283209720788c3"
+
+[[projects]]
+  branch = "master"
   name = "code.cloudfoundry.org/filelock"
   packages = ["."]
   revision = "13cd4136463908a96faf1876aa0d9ada358f0b41"
@@ -25,6 +31,18 @@
   name = "code.cloudfoundry.org/groot-windows"
   packages = ["hcs"]
   revision = "38d8ec15f36a9644eae3b66f3a7ccd87ba61d440"
+
+[[projects]]
+  name = "code.cloudfoundry.org/grootfs"
+  packages = [
+    "base_image_puller",
+    "base_image_puller/unpacker",
+    "groot",
+    "store",
+    "store/filesystems"
+  ]
+  revision = "e78dc6beee5bbfe1e4ea68557e85e66c1f7a3643"
+  version = "v0.30.0"
 
 [[projects]]
   name = "code.cloudfoundry.org/lager"
@@ -70,6 +88,12 @@
     "types"
   ]
   revision = "a1a9391830fd08637edbe45133fd0a8a2682ae75"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/containers/storage"
+  packages = ["pkg/reexec"]
+  revision = "f382d39d7a6caa855bb1f6243967b630d7389781"
 
 [[projects]]
   name = "github.com/docker/distribution"
@@ -227,6 +251,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "90d1aa0bf59373ea655698db30273a3ecf8eaeb54fa0649e9fa24e0d20347185"
+  inputs-digest = "fa73f72a79ff72561b162df56a6fec51ed6c00aedb66569c21b2ce1e70dc5323"
   solver-name = "gps-cdcl"
   solver-version = 1
