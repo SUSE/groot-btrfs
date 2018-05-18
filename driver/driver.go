@@ -13,7 +13,6 @@ import (
 	"time"
 	"unsafe"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
@@ -223,14 +222,6 @@ func (d *Driver) CreateVolume(logger lager.Logger, parentID, id string) (string,
 	}
 
 	return volPath, nil
-}
-
-func (d *Driver) WriteVolumeMeta(logger lager.Logger, id string, metadata base_image_puller.VolumeMeta) error {
-	logger = logger.Session("btrfs-writing-volume-metadata", lager.Data{"volumeID": id})
-	logger.Debug("starting")
-	defer logger.Debug("ending")
-
-	return filesystems.WriteVolumeMeta(logger, d.conf.StorePath, id, metadata)
 }
 
 func (d *Driver) MoveVolume(logger lager.Logger, from, to string) error {
