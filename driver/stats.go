@@ -7,18 +7,13 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/groot"
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 )
 
 func (d *Driver) Stats(logger lager.Logger, bundleID string) (groot.VolumeStats, error) {
-	imagePath := filepath.Join(d.conf.StorePath, store.ImageDirName, bundleID)
+	imagePath := d.imagePath(bundleID)
 
-	return d.FetchStats(logger, imagePath)
-}
-
-func (d *Driver) FetchStats(logger lager.Logger, imagePath string) (groot.VolumeStats, error) {
 	logger = logger.Session("btrfs-fetching-stats", lager.Data{"imagePath": imagePath})
 	logger.Debug("starting")
 	defer logger.Debug("ending")

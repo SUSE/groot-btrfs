@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager"
-
-	"code.cloudfoundry.org/grootfs/store"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
@@ -18,7 +16,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	imagePath := filepath.Join(d.conf.StorePath, store.ImageDirName, bundleID)
+	imagePath := d.imagePath(bundleID)
 
 	toPath := filepath.Join(imagePath, "rootfs")
 

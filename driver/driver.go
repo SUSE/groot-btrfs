@@ -13,6 +13,7 @@ import (
 	"time"
 	"unsafe"
 
+	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
@@ -320,4 +321,8 @@ func (d *Driver) HandleOpaqueWhiteouts(logger lager.Logger, id string, opaqueWhi
 	}
 
 	return nil
+}
+
+func (d *Driver) imagePath(id string) string {
+	return path.Join(d.conf.StorePath, store.ImageDirName, id)
 }
