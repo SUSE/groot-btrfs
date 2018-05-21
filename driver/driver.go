@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	BtrfsType               = 0x9123683E
-	utimeOmit         int64 = ((1 << 30) - 2)
-	atSymlinkNoFollow int   = 0x100
+	BtrfsType                  = 0x9123683E
+	utimeOmit            int64 = ((1 << 30) - 2)
+	atSymlinkNoFollow    int   = 0x100
+	ImageReferenceFormat       = "image:%s"
 )
 
 type Driver struct {

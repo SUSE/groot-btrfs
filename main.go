@@ -5,9 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/SUSE/groot-btrfs/driver"
-
 	"code.cloudfoundry.org/groot"
+	"github.com/SUSE/groot-btrfs/driver"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/urfave/cli"
 )

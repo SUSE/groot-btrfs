@@ -10,10 +10,9 @@ import (
 
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/dependency_manager"
 	errorspkg "github.com/pkg/errors"
 )
-
-const ImageReferenceFormat = "image:%s"
 
 func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 	//TODO: add metrics back to the implementation
@@ -27,16 +26,18 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 		return err
 	}
 
-	/* TODO: Do we need this? If yes, then we should have called Register() somewhere)
-	// Do we also will need to implement a garbage collector?
+	dependencyManager := dependency_manager.NewDependencyManager(
+		filepath.Join(d.conf.StorePath, store.MetaDirName, "dependencies"),
+	)
+
+	// TODO: Do we also will need to implement a garbage collector?
 	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
-	if err := d.dependencyManager.Deregister(imageRefName); err != nil {
+	if err := dependencyManager.Deregister(imageRefName); err != nil {
 		if !os.IsNotExist(errorspkg.Cause(err)) {
 			logger.Error("failed-to-deregister-dependencies", err)
 			return err
 		}
 	}
-	*/
 
 	return nil
 }

@@ -39,7 +39,7 @@ cleanup_filesystem $1 $2
 setup_filesystem $1
 mount_filesystem $1 $2
 mkdir $2/volumes
-mkdir $2/meta
+mkdir -p $2/meta/dependencies
 
 echo "Setup complete. Example command:"
 echo "./groot-btrfs --btrfs-progs-path /sbin create docker://registry.hub.docker.com/library/busybox busybox"

@@ -1,16 +1,18 @@
 package driver
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/dependency_manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
 
-//func (d *Driver) CreateImage(logger lager.Logger, spec image_cloner.ImageDriverSpec) (groot.MountInfo, error) {
 func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (specs.Spec, error) {
 	logger = logger.Session("btrfs-creating-snapshot", lager.Data{"IDs": layerIDs})
 	logger.Info("starting")
@@ -52,6 +54,24 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 	if err := os.Chmod(toPath, 0755); err != nil {
 		logger.Error("chmoding-snapshot", err)
 		return specs.Spec{}, errorspkg.Wrap(err, "chmoding snapshot")
+	}
+
+	if err := d.applyDiskLimit(logger, diskLimit); err != nil {
+		logger.Error("apply-disk-limit", err)
+		return specs.Spec{}, errorspkg.Wrap(err, "applying disk limit")
+	}
+
+	dependencyManager := dependency_manager.NewDependencyManager(
+		filepath.Join(d.conf.StorePath, store.MetaDirName, "dependencies"),
+	)
+
+	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
+	if err := dependencyManager.Register(imageRefName, layerIDs); err != nil {
+		if destroyErr := d.Delete(logger, bundleID); destroyErr != nil {
+			logger.Error("failed-to-destroy-image", destroyErr)
+		}
+
+		return specs.Spec{}, errorspkg.Wrap(err, "failed to register bundle")
 	}
 
 	return spec, d.applyDiskLimit(logger, diskLimit)
