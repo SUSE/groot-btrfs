@@ -41,7 +41,17 @@ func main() {
 			Usage:       "The path to btrfs progs",
 			Destination: &driverConfig.BtrfsProgsPath,
 		},
-
+		cli.StringFlag{
+			Name:        "metron-endpoint",
+			Usage:       "Metron endpoint used to send metrics",
+			Value:       "",
+			Destination: &driverConfig.MetronEndpoint,
+		},
+		cli.Int64Flag{
+			Name:        "threshold-bytes",
+			Usage:       "Disk usage of the store directory at which cleanup should trigger",
+			Destination: &driverConfig.CleanThresholdBytes,
+		},
 		cli.StringFlag{
 			Name:        "drax-bin",
 			Value:       "",

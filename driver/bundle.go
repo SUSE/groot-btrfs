@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
 	"github.com/SUSE/groot-btrfs/dependency_manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -61,9 +60,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "applying disk limit")
 	}
 
-	dependencyManager := dependency_manager.NewDependencyManager(
-		filepath.Join(d.conf.StorePath, store.MetaDirName, "dependencies"),
-	)
+	dependencyManager := dependency_manager.NewDependencyManager(d.dependenciesPath())
 
 	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
 	if err := dependencyManager.Register(imageRefName, layerIDs); err != nil {

@@ -32,13 +32,14 @@ type Driver struct {
 }
 
 type DriverConfig struct {
-	VolumesDirName string
-	BtrfsProgsPath string
-
-	DraxBinPath string
-	StorePath   string
-	UIDMapping  []string
-	GIDMapping  []string
+	VolumesDirName      string
+	BtrfsProgsPath      string
+	MetronEndpoint      string
+	CleanThresholdBytes int64
+	DraxBinPath         string
+	StorePath           string
+	UIDMapping          []string
+	GIDMapping          []string
 }
 
 func (c *DriverConfig) BtrfsBinPath() string {
@@ -262,6 +263,33 @@ func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
 	}
 
 	return d.destroyBtrfsVolume(logger, filepath.Join(d.conf.StorePath, "volumes", id))
+}
+
+func (d *Driver) VolumeSize(lager.Logger, string) (int64, error) {
+	// TODO: Implement this please
+
+	return 0, nil
+}
+
+func (d *Driver) Volumes(lager.Logger) ([]string, error) {
+	// TODO: Implement this please
+
+	return []string{}, nil
+}
+
+func (d *Driver) ImageIDs(logger lager.Logger) ([]string, error) {
+	images := []string{}
+
+	existingImages, err := ioutil.ReadDir(path.Join(d.conf.StorePath, store.ImageDirName))
+	if err != nil {
+		return nil, errorspkg.Wrap(err, "failed to read images dir")
+	}
+
+	for _, imageInfo := range existingImages {
+		images = append(images, imageInfo.Name())
+	}
+
+	return images, nil
 }
 
 func (d *Driver) destroyBtrfsVolume(logger lager.Logger, path string) error {

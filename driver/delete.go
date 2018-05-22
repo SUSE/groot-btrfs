@@ -26,9 +26,7 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 		return err
 	}
 
-	dependencyManager := dependency_manager.NewDependencyManager(
-		filepath.Join(d.conf.StorePath, store.MetaDirName, "dependencies"),
-	)
+	dependencyManager := dependency_manager.NewDependencyManager(d.dependenciesPath())
 
 	// TODO: Do we also will need to implement a garbage collector?
 	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
