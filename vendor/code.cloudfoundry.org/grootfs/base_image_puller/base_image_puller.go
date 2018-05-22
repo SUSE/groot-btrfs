@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,11 +13,9 @@ import (
 
 	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
-	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	errorspkg "github.com/pkg/errors"
 )
 
-const BaseImageReferenceFormat = "baseimage:%s"
 const MetricsUnpackTimeName = "UnpackTime"
 const MetricsDownloadTimeName = "DownloadTime"
 
@@ -35,29 +32,14 @@ type UnpackSpec struct {
 	BaseDirectory string
 }
 
-type LayerInfo struct {
-	BlobID        string
-	ChainID       string
-	DiffID        string
-	ParentChainID string
-	Size          int64
-	BaseDirectory string
-	URLs          []string
-	MediaType     string
-}
-
-type BaseImageInfo struct {
-	LayerInfos []LayerInfo
-	Config     specsv1.Image
-}
-
 type VolumeMeta struct {
 	Size int64
 }
 
 type Fetcher interface {
-	BaseImageInfo(logger lager.Logger, baseImageURL *url.URL) (BaseImageInfo, error)
-	StreamBlob(logger lager.Logger, baseImageURL *url.URL, layerInfo LayerInfo) (io.ReadCloser, int64, error)
+	BaseImageInfo(logger lager.Logger) (groot.BaseImageInfo, error)
+	StreamBlob(logger lager.Logger, layerInfo groot.LayerInfo) (io.ReadCloser, int64, error)
+	Close() error
 }
 
 type DependencyRegisterer interface {
@@ -84,59 +66,44 @@ type VolumeDriver interface {
 }
 
 type BaseImagePuller struct {
-	fetcher              Fetcher
-	unpacker             Unpacker
-	volumeDriver         VolumeDriver
-	dependencyRegisterer DependencyRegisterer
-	metricsEmitter       groot.MetricsEmitter
-	locksmith            groot.Locksmith
+	fetcher        Fetcher
+	unpacker       Unpacker
+	volumeDriver   VolumeDriver
+	metricsEmitter groot.MetricsEmitter
+	locksmith      groot.Locksmith
 }
 
-func NewBaseImagePuller(fetcher Fetcher, unpacker Unpacker, volumeDriver VolumeDriver, dependencyRegisterer DependencyRegisterer, metricsEmitter groot.MetricsEmitter, locksmith groot.Locksmith) *BaseImagePuller {
+func NewBaseImagePuller(fetcher Fetcher, unpacker Unpacker, volumeDriver VolumeDriver, metricsEmitter groot.MetricsEmitter, locksmith groot.Locksmith) *BaseImagePuller {
 	return &BaseImagePuller{
-		fetcher:              fetcher,
-		unpacker:             unpacker,
-		volumeDriver:         volumeDriver,
-		dependencyRegisterer: dependencyRegisterer,
-		metricsEmitter:       metricsEmitter,
-		locksmith:            locksmith,
+		fetcher:        fetcher,
+		unpacker:       unpacker,
+		volumeDriver:   volumeDriver,
+		metricsEmitter: metricsEmitter,
+		locksmith:      locksmith,
 	}
 }
 
-func (p *BaseImagePuller) Pull(logger lager.Logger, spec groot.BaseImageSpec) (groot.BaseImage, error) {
-	logger = logger.Session("image-pulling", lager.Data{"spec": spec})
+func (p *BaseImagePuller) FetchBaseImageInfo(logger lager.Logger) (groot.BaseImageInfo, error) {
+	logger = logger.Session("fetching-image-info")
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	baseImageInfo, err := p.fetcher.BaseImageInfo(logger, spec.BaseImageSrc)
-	if err != nil {
-		return groot.BaseImage{}, errorspkg.Wrap(err, "fetching list of layer infos")
-	}
-	logger.Debug("fetched-layer-infos", lager.Data{"infos": baseImageInfo.LayerInfos})
-
-	if err = p.quotaExceeded(logger, baseImageInfo.LayerInfos, spec); err != nil {
-		return groot.BaseImage{}, err
-	}
-
-	err = p.buildLayer(logger, len(baseImageInfo.LayerInfos)-1, baseImageInfo.LayerInfos, spec)
-	if err != nil {
-		return groot.BaseImage{}, err
-	}
-	chainIDs := p.chainIDs(baseImageInfo.LayerInfos)
-
-	baseImageRefName := fmt.Sprintf(BaseImageReferenceFormat, spec.BaseImageSrc.String())
-	if err := p.dependencyRegisterer.Register(baseImageRefName, chainIDs); err != nil {
-		return groot.BaseImage{}, err
-	}
-
-	baseImage := groot.BaseImage{
-		BaseImage: baseImageInfo.Config,
-		ChainIDs:  chainIDs,
-	}
-	return baseImage, nil
+	return p.fetcher.BaseImageInfo(logger)
 }
 
-func (p *BaseImagePuller) quotaExceeded(logger lager.Logger, layerInfos []LayerInfo, spec groot.BaseImageSpec) error {
+func (p *BaseImagePuller) Pull(logger lager.Logger, baseImageInfo groot.BaseImageInfo, spec groot.BaseImageSpec) error {
+	logger = logger.Session("pulling-image-layers", lager.Data{"spec": spec})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	if err := p.quotaExceeded(logger, baseImageInfo.LayerInfos, spec); err != nil {
+		return err
+	}
+
+	return p.buildLayer(logger, len(baseImageInfo.LayerInfos)-1, baseImageInfo.LayerInfos, spec)
+}
+
+func (p *BaseImagePuller) quotaExceeded(logger lager.Logger, layerInfos []groot.LayerInfo, spec groot.BaseImageSpec) error {
 	if spec.ExcludeBaseImageFromQuota || spec.DiskLimit == 0 {
 		return nil
 	}
@@ -155,14 +122,6 @@ func (p *BaseImagePuller) quotaExceeded(logger lager.Logger, layerInfos []LayerI
 	return nil
 }
 
-func (p *BaseImagePuller) chainIDs(layerInfos []LayerInfo) []string {
-	chainIDs := []string{}
-	for _, layerInfo := range layerInfos {
-		chainIDs = append(chainIDs, layerInfo.ChainID)
-	}
-	return chainIDs
-}
-
 func (p *BaseImagePuller) volumeExists(logger lager.Logger, chainID string) bool {
 	volumePath, err := p.volumeDriver.VolumePath(logger, chainID)
 	if err == nil {
@@ -176,7 +135,7 @@ func (p *BaseImagePuller) volumeExists(logger lager.Logger, chainID string) bool
 	return false
 }
 
-func (p *BaseImagePuller) buildLayer(logger lager.Logger, index int, layerInfos []LayerInfo, spec groot.BaseImageSpec) error {
+func (p *BaseImagePuller) buildLayer(logger lager.Logger, index int, layerInfos []groot.LayerInfo, spec groot.BaseImageSpec) error {
 	if index < 0 {
 		return nil
 	}
@@ -201,53 +160,37 @@ func (p *BaseImagePuller) buildLayer(logger lager.Logger, index int, layerInfos 
 		return nil
 	}
 
-	downloadChan := make(chan downloadReturn, 1)
-	go p.downloadLayer(logger, spec, layerInfo, downloadChan)
-
 	if err := p.buildLayer(logger, index-1, layerInfos, spec); err != nil {
 		return err
 	}
 
-	downloadResult := <-downloadChan
-	if downloadResult.Err != nil {
-		return downloadResult.Err
-	}
-
-	defer downloadResult.Stream.Close()
-
-	var parentLayerInfo LayerInfo
+	var parentLayerInfo groot.LayerInfo
 	if index > 0 {
 		parentLayerInfo = layerInfos[index-1]
 	}
-	return p.unpackLayer(logger, layerInfo, parentLayerInfo, spec, downloadResult.Stream)
+
+	return p.downloadLayer(logger, layerInfo, parentLayerInfo, spec)
+
 }
 
-type downloadReturn struct {
-	Stream io.ReadCloser
-	Err    error
-}
-
-func (p *BaseImagePuller) downloadLayer(logger lager.Logger, spec groot.BaseImageSpec, layerInfo LayerInfo, downloadChan chan downloadReturn) {
+func (p *BaseImagePuller) downloadLayer(logger lager.Logger, layerInfo, parentLayerInfo groot.LayerInfo, spec groot.BaseImageSpec) error {
 	logger = logger.Session("downloading-layer", lager.Data{"LayerInfo": layerInfo})
 	logger.Debug("starting")
 	defer logger.Debug("ending")
 	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsDownloadTimeName, time.Now())
 
-	stream, size, err := p.fetcher.StreamBlob(logger, spec.BaseImageSrc, layerInfo)
+	stream, size, err := p.fetcher.StreamBlob(logger, layerInfo)
 	if err != nil {
-		err = errorspkg.Wrapf(err, "streaming blob `%s`", layerInfo.BlobID)
+		return errorspkg.Wrapf(err, "streaming blob `%s`", layerInfo.BlobID)
 	}
+	defer stream.Close()
 
-	logger.Debug("got-stream-for-blob", lager.Data{
-		"size":                      size,
-		"diskLimit":                 spec.DiskLimit,
-		"excludeBaseImageFromQuota": spec.ExcludeBaseImageFromQuota,
-	})
+	logger.Debug("got-stream-for-blob", lager.Data{"size": size})
 
-	downloadChan <- downloadReturn{Stream: stream, Err: err}
+	return p.unpackLayer(logger, layerInfo, parentLayerInfo, spec, stream)
 }
 
-func (p *BaseImagePuller) unpackLayer(logger lager.Logger, layerInfo, parentLayerInfo LayerInfo, spec groot.BaseImageSpec, stream io.ReadCloser) error {
+func (p *BaseImagePuller) unpackLayer(logger lager.Logger, layerInfo, parentLayerInfo groot.LayerInfo, spec groot.BaseImageSpec, stream io.ReadCloser) error {
 	logger = logger.Session("unpacking-layer", lager.Data{"LayerInfo": layerInfo})
 	logger.Debug("starting")
 	defer logger.Debug("ending")
@@ -273,7 +216,7 @@ func (p *BaseImagePuller) unpackLayer(logger lager.Logger, layerInfo, parentLaye
 	return p.finalizeVolume(logger, tempVolumeName, volumePath, layerInfo.ChainID, volSize)
 }
 
-func (p *BaseImagePuller) createTemporaryVolumeDirectory(logger lager.Logger, layerInfo LayerInfo, spec groot.BaseImageSpec) (string, string, error) {
+func (p *BaseImagePuller) createTemporaryVolumeDirectory(logger lager.Logger, layerInfo groot.LayerInfo, spec groot.BaseImageSpec) (string, string, error) {
 	tempVolumeName := fmt.Sprintf("%s-incomplete-%d-%d", layerInfo.ChainID, time.Now().UnixNano(), rand.Int())
 	volumePath, err := p.volumeDriver.CreateVolume(logger,
 		layerInfo.ParentChainID,
@@ -294,7 +237,7 @@ func (p *BaseImagePuller) createTemporaryVolumeDirectory(logger lager.Logger, la
 	return tempVolumeName, volumePath, nil
 }
 
-func (p *BaseImagePuller) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec UnpackSpec, layerInfo, parentLayerInfo LayerInfo) (volSize int64, err error) {
+func (p *BaseImagePuller) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec UnpackSpec, layerInfo, parentLayerInfo groot.LayerInfo) (volSize int64, err error) {
 	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
 
 	if unpackSpec.BaseDirectory != "" {
@@ -338,7 +281,7 @@ func (p *BaseImagePuller) finalizeVolume(logger lager.Logger, tempVolumeName, vo
 	return nil
 }
 
-func (p *BaseImagePuller) layersSize(layerInfos []LayerInfo) int64 {
+func (p *BaseImagePuller) layersSize(layerInfos []groot.LayerInfo) int64 {
 	var totalSize int64
 	for _, layerInfo := range layerInfos {
 		totalSize += layerInfo.Size

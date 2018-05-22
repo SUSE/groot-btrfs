@@ -38,20 +38,28 @@ func (c *cleaner) Clean(logger lager.Logger, threshold int64) (bool, error) {
 	defer logger.Info("ending")
 
 	if threshold > 0 {
-		storeUsage, err := c.storeMeasurer.Usage(logger)
+		committedQuota, err := c.storeMeasurer.CommittedQuota(logger)
 		if err != nil {
-			return true, errorspkg.Wrap(err, "measuring store usage")
+			return false, errorspkg.Wrap(err, "failed to calculate committed quota")
 		}
-		if storeUsage < threshold {
+		totalVolumesSize, err := c.storeMeasurer.TotalVolumesSize(logger)
+		if err != nil {
+			return false, errorspkg.Wrap(err, "failed to calculate total volumes size")
+		}
+		if (committedQuota + totalVolumesSize) < threshold {
 			return true, nil
 		}
 	} else if threshold < 0 {
 		return true, errorspkg.New("Threshold must be greater than 0")
 	}
 
+	return false, c.collectGarbage(logger)
+}
+
+func (c *cleaner) collectGarbage(logger lager.Logger) error {
 	lockFile, err := c.locksmith.Lock(GlobalLockKey)
 	if err != nil {
-		return false, errorspkg.Wrap(err, "garbage collector acquiring lock")
+		return errorspkg.Wrap(err, "garbage collector acquiring lock")
 	}
 
 	unusedVolumes, err := c.garbageCollector.UnusedVolumes(logger)
@@ -67,5 +75,5 @@ func (c *cleaner) Clean(logger lager.Logger, threshold int64) (bool, error) {
 		logger.Error("unlocking-failed", err)
 	}
 
-	return false, c.garbageCollector.Collect(logger)
+	return c.garbageCollector.Collect(logger)
 }

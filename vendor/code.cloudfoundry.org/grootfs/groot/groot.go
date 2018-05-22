@@ -1,7 +1,6 @@
 package groot // import "code.cloudfoundry.org/grootfs/groot"
 
 import (
-	"net/url"
 	"os"
 	"time"
 
@@ -57,20 +56,31 @@ type IDMappingSpec struct {
 type BaseImageSpec struct {
 	DiskLimit                 int64
 	ExcludeBaseImageFromQuota bool
-	BaseImageSrc              *url.URL
 	UIDMappings               []IDMappingSpec
 	GIDMappings               []IDMappingSpec
 	OwnerUID                  int
 	OwnerGID                  int
 }
 
-type BaseImage struct {
-	BaseImage specsv1.Image
-	ChainIDs  []string
+type LayerInfo struct {
+	BlobID        string
+	ChainID       string
+	DiffID        string
+	ParentChainID string
+	Size          int64
+	BaseDirectory string
+	URLs          []string
+	MediaType     string
+}
+
+type BaseImageInfo struct {
+	LayerInfos []LayerInfo
+	Config     specsv1.Image
 }
 
 type BaseImagePuller interface {
-	Pull(logger lager.Logger, spec BaseImageSpec) (BaseImage, error)
+	FetchBaseImageInfo(logger lager.Logger) (BaseImageInfo, error)
+	Pull(logger lager.Logger, imageInfo BaseImageInfo, spec BaseImageSpec) error
 }
 
 type ImageSpec struct {
@@ -107,8 +117,8 @@ type GarbageCollector interface {
 }
 
 type StoreMeasurer interface {
-	Usage(logger lager.Logger) (int64, error)
-	CacheUsage(logger lager.Logger, volumes []string) int64
+	CommittedQuota(logger lager.Logger) (int64, error)
+	TotalVolumesSize(logger lager.Logger) (int64, error)
 }
 
 type Locksmith interface {

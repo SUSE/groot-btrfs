@@ -171,7 +171,6 @@ func (u *TarUnpacker) Unpack(logger lager.Logger, spec base_image_puller.UnpackS
 	}
 
 	outputBuffer := bytes.NewBuffer([]byte{})
-
 	cmd := reexec.Command("chroot-unpack", string(unpackSpecJSON), string(strategyJSON))
 	cmd.Stderr = lagregator.NewRelogger(logger)
 	cmd.Stdin = spec.Stream

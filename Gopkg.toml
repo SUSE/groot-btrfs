@@ -30,6 +30,10 @@
   name = "code.cloudfoundry.org/filelock"
 
 [[constraint]]
+  revision = "aa826fe9f585910c79fb2a7b3094f9b4f37fb2ae"
+  name = "code.cloudfoundry.org/grootfs"
+
+[[constraint]]
   branch = "master"
   name = "code.cloudfoundry.org/groot"
 

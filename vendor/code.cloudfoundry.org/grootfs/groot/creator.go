@@ -48,7 +48,7 @@ func IamCreator(
 	}
 }
 
-func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error) {
+func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (info ImageInfo, createErr error) {
 	defer c.metricsEmitter.TryEmitDurationFrom(logger, MetricImageCreationTime, time.Now())
 
 	logger = logger.Session("groot-creating", lager.Data{"imageID": spec.ID, "spec": spec})
@@ -69,7 +69,6 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 
 	ownerUid, ownerGid := c.parseOwner(spec.UIDMappings, spec.GIDMappings)
 	baseImageSpec := BaseImageSpec{
-		BaseImageSrc:              spec.BaseImageURL,
 		DiskLimit:                 spec.DiskLimit,
 		ExcludeBaseImageFromQuota: spec.ExcludeBaseImageFromQuota,
 		UIDMappings:               spec.UIDMappings,
@@ -78,11 +77,11 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 		OwnerGID:                  ownerGid,
 	}
 
-	if spec.CleanOnCreate {
-		if _, err = c.cleaner.Clean(logger, spec.CleanOnCreateThresholdBytes); err != nil {
-			return ImageInfo{}, errorspkg.Wrap(err, "failed-to-cleanup-store")
-		}
+	baseImageInfo, err := c.baseImagePuller.FetchBaseImageInfo(logger)
+	if err != nil {
+		return ImageInfo{}, err
 	}
+	baseImageChainIDs := chainIDs(baseImageInfo.LayerInfos)
 
 	lockFile, err := c.locksmith.Lock(GlobalLockKey)
 	if err != nil {
@@ -92,10 +91,14 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 		if err = c.locksmith.Unlock(lockFile); err != nil {
 			logger.Error("failed-to-unlock", err)
 		}
+		if spec.CleanOnCreate {
+			if _, err = c.cleaner.Clean(logger, spec.CleanOnCreateThresholdBytes); err != nil {
+				createErr = errorspkg.Wrap(err, "failed-to-cleanup-store")
+			}
+		}
 	}()
 
-	baseImage, err := c.baseImagePuller.Pull(logger, baseImageSpec)
-	if err != nil {
+	if err := c.baseImagePuller.Pull(logger, baseImageInfo, baseImageSpec); err != nil {
 		return ImageInfo{}, errorspkg.Wrap(err, "pulling the image")
 	}
 
@@ -104,8 +107,8 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 		Mount:                     spec.Mount,
 		DiskLimit:                 spec.DiskLimit,
 		ExcludeBaseImageFromQuota: spec.ExcludeBaseImageFromQuota,
-		BaseVolumeIDs:             baseImage.ChainIDs,
-		BaseImage:                 baseImage.BaseImage,
+		BaseVolumeIDs:             baseImageChainIDs,
+		BaseImage:                 baseImageInfo.Config,
 		OwnerUID:                  ownerUid,
 		OwnerGID:                  ownerGid,
 	}
@@ -116,7 +119,7 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 	}
 
 	imageRefName := fmt.Sprintf(ImageReferenceFormat, spec.ID)
-	if err := c.dependencyManager.Register(imageRefName, baseImage.ChainIDs); err != nil {
+	if err := c.dependencyManager.Register(imageRefName, baseImageChainIDs); err != nil {
 		if destroyErr := c.imageCloner.Destroy(logger, spec.ID); destroyErr != nil {
 			logger.Error("failed-to-destroy-image", destroyErr)
 		}
@@ -125,6 +128,14 @@ func (c *Creator) Create(logger lager.Logger, spec CreateSpec) (ImageInfo, error
 	}
 
 	return image, nil
+}
+
+func chainIDs(layerInfos []LayerInfo) []string {
+	chainIDs := []string{}
+	for _, layerInfo := range layerInfos {
+		chainIDs = append(chainIDs, layerInfo.ChainID)
+	}
+	return chainIDs
 }
 
 func (c *Creator) parseOwner(uidMappings, gidMappings []IDMappingSpec) (int, int) {
