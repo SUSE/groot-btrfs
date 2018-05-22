@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-func (d *Driver) Clean(logger lager.Logger, lockdir string) (bool, error) {
+func (d *Driver) Clean(logger lager.Logger) (bool, error) {
 	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
 	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
 

@@ -6,13 +6,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	wearegroot "code.cloudfoundry.org/grootfs/groot"
+	"code.cloudfoundry.org/grootfs/store"
+	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
 	"github.com/SUSE/groot-btrfs/dependency_manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
 
-func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (specs.Spec, error) {
+func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (returnSpec specs.Spec, createErr error) {
 	logger = logger.Session("btrfs-creating-snapshot", lager.Data{"IDs": layerIDs})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -30,6 +33,23 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		},
 		Linux: &specs.Linux{},
 	}
+
+	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
+	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
+
+	lockFile, err := iamLocksmith.Lock(wearegroot.GlobalLockKey)
+	if err != nil {
+		return specs.Spec{}, errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = iamLocksmith.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+
+		if _, err = d.Clean(logger); err != nil {
+			createErr = errorspkg.Wrap(err, "failed-to-cleanup-store")
+		}
+	}()
 
 	if err := os.MkdirAll(imagePath, 0755); err != nil {
 		logger.Error("creating-imagepath-folder-failed", err, lager.Data{"imagepath": imagePath})
