@@ -265,16 +265,29 @@ func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
 	return d.destroyBtrfsVolume(logger, filepath.Join(d.conf.StorePath, "volumes", id))
 }
 
-func (d *Driver) VolumeSize(lager.Logger, string) (int64, error) {
-	// TODO: Implement this please
+func (d *Driver) VolumeSize(logger lager.Logger, id string) (int64, error) {
+	logger = logger.Session("btrfs-volume-size", lager.Data{"volumeID": id})
+	logger.Debug("starting")
+	defer logger.Debug("ending")
 
-	return 0, nil
+	return filesystems.VolumeSize(logger, d.conf.StorePath, id)
 }
 
-func (d *Driver) Volumes(lager.Logger) ([]string, error) {
-	// TODO: Implement this please
+func (d *Driver) Volumes(logger lager.Logger) ([]string, error) {
+	logger = logger.Session("btrfs-listing-volumes")
+	logger.Debug("starting")
+	defer logger.Debug("ending")
 
-	return []string{}, nil
+	volumes := []string{}
+	existingVolumes, err := ioutil.ReadDir(path.Join(d.conf.StorePath, store.VolumesDirName))
+	if err != nil {
+		return nil, errorspkg.Wrap(err, "failed to list volumes")
+	}
+
+	for _, volumeInfo := range existingVolumes {
+		volumes = append(volumes, volumeInfo.Name())
+	}
+	return volumes, nil
 }
 
 func (d *Driver) ImageIDs(logger lager.Logger) ([]string, error) {
