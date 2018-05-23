@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# This script's responsibility is to prepare the btrfs filesystem to be used
+# with the groot-btrfs driver. It takes over the responsibility from the grootfs
+# `init-store` command which is not part of the groot framework anymore.
+
+# Help function
+usage() {
+cat <<-HELP
+Usage: $(basename "${0}") [OPTIONS]
+
+OPTIONS
+-u      UID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>")
+-g      GID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>")
+-s      The path of the store to be created
+-b      The filesystem size in bytes
+-r      The user and group to look up in /etc/sub{u,g}id for UID/GID mappings, (e.g.: "<username>:<group>")
+-h      Print this help message
+HELP
+}
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+UID_MAPPING=""
+GID_MAPPING=""
+STORE_SIZE_BYTES=0
+STORE_PATH=""
+ROOTLESS=""
+
+while getopts "hu:g:s:b:r:" opt; do
+    case "$opt" in
+    h)
+        usage
+        exit 0
+        ;;
+    u)
+      UID_MAPPING=$OPTARG
+      ;;
+    g)
+      GID_MAPPING=$OPTARG
+      ;;
+    s)
+      STORE_PATH=$OPTARG
+      ;;
+    b)
+      STORE_SIZE_BYTES=$OPTARG
+      ;;
+    r)
+      ROOTLESS=$OPTARG
+      ;;
+    esac
+done
+shift $((OPTIND-1))
+[ "${1:-}" = "--" ] && shift
+
+if ([ -n "${UID_MAPPING}" ] || [ -n "${GID_MAPPING}" ]) && [ -n "${ROOTLESS}" ]; then
+  echo "Can't specify both UID/GID mapping (-u, -g) and rootless (-r)"
+  usage && exit 1;
+fi
+
+if [ -z "${STORE_PATH}" ]; then
+  echo "Must specify store path (-s option)"
+  usage && exit 1;
+fi
+
+if [ ${STORE_SIZE_BYTES} == 0 ]; then
+  echo "Must specify store size (-b option)"
+  usage && exit 1;
+fi
