@@ -15,7 +15,7 @@ OPTIONS
 -s      The path of the store to be created
 -b      The filesystem size in bytes
 -r      The user and group to look up in /etc/sub{u,g}id for UID/GID mappings, (e.g.: "<username>:<group>")
--h      Print this help message
+-h      Print this help message and exit
 HELP
 }
 
@@ -27,6 +27,37 @@ validate_filesystem() {
   check_string=".*${1} btrfs .*user_subvol_rm_allowed.*"
   if [ $(cat /proc/mounts | grep "$check_string" | wc -c) -eq 0 ]; then
     echo "btrfs filesystem mounted without user_subvol_rm_allowed option" && exit 1
+  fi
+}
+
+create_and_mount_filesystem() {
+  mkdir -p $STORE_PATH -m 0755
+  backing_store_file=$STORE_PATH/.backing-store
+  touch $backing_store_file
+  chmod 600 $backing_store_file
+  truncate -s $STORE_SIZE_BYTES $backing_store_file
+
+  mount -t btrfs -o user_subvol_rm_allowed,rw,remount $backing_store_file $STORE_PATH
+  mkfs.btrfs -f $backing_store_file
+  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $STORE_PATH
+}
+
+apply_mappings() {
+  namespace_file_path="${STORE_PATH}/meta/namespace.json"
+  if [ ! -f "${namespace_file_path}" ]; then
+    json='{"uid-mappings": "'$UID_MAPPING'", "gid-mappings": "'$GID_MAPPING'"}'
+    echo $json > "${namespace_file_path}"
+    chmod 755 "${namespace_file_path}"
+  fi
+
+  if [ $(cat "${namespace_file_path}" | grep ".*\"uid-mappings\": \"$UID_MAPPING\".*" | wc -c) -eq 0 ]; then
+    echo "provided UID mappings ($UID_MAPPING) do not match those already configured in the store"
+    exit 1
+  fi
+
+  if [ $(cat "${namespace_file_path}" | grep ".*\"gid-mappings\": \"$GID_MAPPING\".*" | wc -c) -eq 0 ]; then
+    echo "provided GID mappings ($GID_MAPPING) do not match those already configured in the store"
+    exit 1
   fi
 }
 
@@ -88,3 +119,6 @@ if [ -d "${STORE_PATH}" ]; then
 fi
 
 validate_filesystem $(readlink -f "${STORE_PATH}" | xargs dirname)
+create_and_mount_filesystem
+mkdir $STORE_PATH/meta
+apply_mappings
