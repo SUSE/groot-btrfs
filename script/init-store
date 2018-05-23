@@ -19,6 +19,17 @@ OPTIONS
 HELP
 }
 
+validate_filesystem() {
+  if [ $(stat -f -c "%T" "${1}") != "btrfs" ]; then
+    echo "No btrfs filesystem on $1" && exit 1
+  fi
+
+  check_string=".*${1} btrfs .*user_subvol_rm_allowed.*"
+  if [ $(cat /proc/mounts | grep "$check_string" | wc -c) -eq 0 ]; then
+    echo "btrfs filesystem mounted without user_subvol_rm_allowed option" && exit 1
+  fi
+}
+
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 UID_MAPPING=""
@@ -67,3 +78,13 @@ if [ ${STORE_SIZE_BYTES} == 0 ]; then
   echo "Must specify store size (-b option)"
   usage && exit 1;
 fi
+
+if [ $(id -u) != 0 ]; then
+  echo "Only Root user can initialize store" && exit 1
+fi
+
+if [ -d "${STORE_PATH}" ]; then
+  echo "Store path already exists" && exit 1
+fi
+
+validate_filesystem $(readlink -f "${STORE_PATH}" | xargs dirname)
