@@ -42,29 +42,73 @@ create_and_mount_filesystem() {
   mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $STORE_PATH
 }
 
+get_uid_mappings() {
+  subuid_path="/etc/subuid"
+
+  if [ -n "${UID_MAPPINGS}" ]; then
+    # TODO: Do we need to enable more than one `-u` and `-g` values (as in more mappings)?
+    echo '["'${UID_MAPPINGS}'"]'
+  else
+    username=$(echo $ROOTLESS | cut -d: -f1)
+    userid=$(id -u $username)
+    result=$(get_subid_mapping $subuid_path $userid)
+
+    echo '["'$userid':0:1","'$result'"]'
+  fi
+}
+
+get_gid_mappings() {
+  subgid_path="/etc/subgid"
+
+  if [ -n "${GID_MAPPINGS}" ]; then
+    echo '["'${GID_MAPPINGS}'"]'
+  elif [ -n "${ROOTLESS}" ]; then
+    groupname=$(echo $ROOTLESS | cut -d: -f2)
+    groupid=$(getent group $groupname | cut -d: -f3)
+    result=$(get_subid_mapping $subgid_path $groupid)
+
+    echo '["'$groupid':0:1","'$result'"]'
+  else
+    echo '[]'
+  fi
+}
+
+# $1 is either /etc/subuid or /etc/subgid
+# $2 is the {group,user} id
+get_subid_mapping() {
+  if [ -f ${1} ]; then
+    host_id=$(cat ${1} | grep $2 | cut -d: -f2)
+    size=$(cat ${1} | grep $2 | cut -d: -f3)
+  fi
+
+  echo "$host_id:1:$size"
+}
+
 apply_mappings() {
+  uid_mappings=$(get_uid_mappings)
+  gid_mappings=$(get_gid_mappings)
   namespace_file_path="${STORE_PATH}/meta/namespace.json"
   if [ ! -f "${namespace_file_path}" ]; then
-    json='{"uid-mappings": "'$UID_MAPPING'", "gid-mappings": "'$GID_MAPPING'"}'
+    json='{"uid-mappings": '${uid_mappings}', "gid-mappings": '${gid_mappings}'}'
     echo $json > "${namespace_file_path}"
     chmod 755 "${namespace_file_path}"
   fi
 
-  if [ $(cat "${namespace_file_path}" | grep ".*\"uid-mappings\": \"$UID_MAPPING\".*" | wc -c) -eq 0 ]; then
-    echo "provided UID mappings ($UID_MAPPING) do not match those already configured in the store"
+  if [ $(cat "${namespace_file_path}" | grep -F "\"uid-mappings\": $uid_mappings" | wc -c) -eq 0 ]; then
+    echo "provided UID mappings ($uid_mappings) do not match those already configured in the store"
     exit 1
   fi
 
-  if [ $(cat "${namespace_file_path}" | grep ".*\"gid-mappings\": \"$GID_MAPPING\".*" | wc -c) -eq 0 ]; then
-    echo "provided GID mappings ($GID_MAPPING) do not match those already configured in the store"
+  if [ $(cat "${namespace_file_path}" | grep -F "\"gid-mappings\": $gid_mappings" | wc -c) -eq 0 ]; then
+    echo "provided GID mappings ($gid_mappings) do not match those already configured in the store"
     exit 1
   fi
 }
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
-UID_MAPPING=""
-GID_MAPPING=""
+UID_MAPPINGS=""
+GID_MAPPINGS=""
 STORE_SIZE_BYTES=0
 STORE_PATH=""
 ROOTLESS=""
@@ -76,10 +120,10 @@ while getopts "hu:g:s:b:r:" opt; do
         exit 0
         ;;
     u)
-      UID_MAPPING=$OPTARG
+      UID_MAPPINGS=$OPTARG
       ;;
     g)
-      GID_MAPPING=$OPTARG
+      GID_MAPPINGS=$OPTARG
       ;;
     s)
       STORE_PATH=$OPTARG
@@ -95,7 +139,7 @@ done
 shift $((OPTIND-1))
 [ "${1:-}" = "--" ] && shift
 
-if ([ -n "${UID_MAPPING}" ] || [ -n "${GID_MAPPING}" ]) && [ -n "${ROOTLESS}" ]; then
+if ([ -n "${UID_MAPPINGS}" ] || [ -n "${GID_MAPPINGS}" ]) && [ -n "${ROOTLESS}" ]; then
   echo "Can't specify both UID/GID mapping (-u, -g) and rootless (-r)"
   usage && exit 1;
 fi
