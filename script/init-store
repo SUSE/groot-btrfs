@@ -4,6 +4,8 @@
 # with the groot-btrfs driver. It takes over the responsibility from the grootfs
 # `init-store` command which is not part of the groot framework anymore.
 
+set -e
+
 # Help function
 usage() {
 cat <<-HELP
@@ -37,7 +39,7 @@ create_and_mount_filesystem() {
   chmod 600 $backing_store_file
   truncate -s $STORE_SIZE_BYTES $backing_store_file
 
-  mount -t btrfs -o user_subvol_rm_allowed,rw,remount $backing_store_file $STORE_PATH
+  #mount -t btrfs -o user_subvol_rm_allowed,rw,remount $backing_store_file $STORE_PATH
   mkfs.btrfs -f $backing_store_file
   mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $STORE_PATH
 }

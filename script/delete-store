@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+STORE_PATH=$1
+
+if [ ! -d $STORE_PATH ]; then
+  echo "Store $STORE_PATH not found"
+  exit 1
+fi
+
+if [ $(id -u) != 0 ]; then
+  echo "Only Root user can delete a store" && exit 1
+fi
+
+umount $STORE_PATH
+rm -rf $STORE_PATH
