@@ -24,11 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  branch = "master"
-  name = "code.cloudfoundry.org/filelock"
-
 [[constraint]]
   revision = "aa826fe9f585910c79fb2a7b3094f9b4f37fb2ae"
   name = "code.cloudfoundry.org/grootfs"
@@ -38,20 +33,8 @@
   name = "code.cloudfoundry.org/groot"
 
 [[constraint]]
-  branch = "master"
-  name = "code.cloudfoundry.org/groot-windows"
-
-[[constraint]]
   name = "code.cloudfoundry.org/lager"
   version = "1.0.0"
-
-[[constraint]]
-  name = "github.com/Microsoft/go-winio"
-  version = "0.4.7"
-
-[[constraint]]
-  name = "github.com/Microsoft/hcsshim"
-  version = "0.6.11"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -64,10 +47,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/urfave/cli"
-
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/sys"
 
 [prune]
   go-tests = true
