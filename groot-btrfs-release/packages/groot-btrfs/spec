@@ -2,9 +2,10 @@
 name: groot-btrfs
 
 files:
-  - groot-btrfs/dependency_manager/**/*
+  - groot-btrfs/dependencymanager/**/*
   - groot-btrfs/driver/**/*
-  - groot-btrfs/script/**/*
+  - groot-btrfs/make/**/*
+  - groot-btrfs/scripts/**/*
   - groot-btrfs/vendor/**/*
   - groot-btrfs/Gopkg.lock
   - groot-btrfs/Gopkg.toml
