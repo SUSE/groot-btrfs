@@ -1,0 +1,10 @@
+---
+name: groot-btrfs
+templates:
+  pre-start.erb: bin/pre-start
+
+packages:
+  - golang1.9
+  - groot-btrfs
+
+properties: {}
