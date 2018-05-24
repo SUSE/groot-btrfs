@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-03.dtd">
+<coverage line-rate="0" branch-rate="0" version="" timestamp="1527165069346">
+	<packages>
+		<package name="github.com/SUSE/groot-btrfs/dependencymanager" line-rate="0" branch-rate="0" complexity="0">
+			<classes>
+				<class name="-" filename="/home/toaster/code/gopath/src/github.com/SUSE/groot-btrfs/dependencymanager/dependency_manager.go" line-rate="0" branch-rate="0" complexity="0">
+					<methods>
+						<method name="NewDependencyManager" signature="" line-rate="0" branch-rate="0">
+							<lines>
+								<line number="22" hits="0"></line>
+							</lines>
+						</method>
+					</methods>
+					<lines>
+						<line number="22" hits="0"></line>
+					</lines>
+				</class>
+				<class name="DependencyManager" filename="/home/toaster/code/gopath/src/github.com/SUSE/groot-btrfs/dependencymanager/dependency_manager.go" line-rate="0" branch-rate="0" complexity="0">
+					<methods>
+						<method name="Register" signature="" line-rate="0" branch-rate="0">
+							<lines>
+								<line number="29" hits="0"></line>
+								<line number="30" hits="0"></line>
+								<line number="31" hits="0"></line>
+								<line number="34" hits="0"></line>
+							</lines>
+						</method>
+						<method name="Deregister" signature="" line-rate="0" branch-rate="0">
+							<lines>
+								<line number="39" hits="0"></line>
+							</lines>
+						</method>
+						<method name="Dependencies" signature="" line-rate="0" branch-rate="0">
+							<lines>
+								<line number="44" hits="0"></line>
+								<line number="45" hits="0"></line>
+								<line number="46" hits="0"></line>
+								<line number="48" hits="0"></line>
+								<line number="49" hits="0"></line>
+								<line number="52" hits="0"></line>
+								<line number="53" hits="0"></line>
+								<line number="54" hits="0"></line>
+								<line number="57" hits="0"></line>
+							</lines>
+						</method>
+						<method name="filePath" signature="" line-rate="0" branch-rate="0">
+							<lines>
+								<line number="61" hits="0"></line>
+								<line number="62" hits="0"></line>
+							</lines>
+						</method>
+					</methods>
+					<lines>
+						<line number="29" hits="0"></line>
+						<line number="30" hits="0"></line>
+						<line number="31" hits="0"></line>
+						<line number="34" hits="0"></line>
+						<line number="39" hits="0"></line>
+						<line number="44" hits="0"></line>
+						<line number="45" hits="0"></line>
+						<line number="46" hits="0"></line>
+						<line number="48" hits="0"></line>
+						<line number="49" hits="0"></line>
+						<line number="52" hits="0"></line>
+						<line number="53" hits="0"></line>
+						<line number="54" hits="0"></line>
+						<line number="57" hits="0"></line>
+						<line number="61" hits="0"></line>
+						<line number="62" hits="0"></line>
+					</lines>
+				</class>
+			</classes>
+		</package>
+	</packages>
+</coverage>
