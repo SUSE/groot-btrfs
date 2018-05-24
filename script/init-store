@@ -21,6 +21,17 @@ OPTIONS
 HELP
 }
 
+# This function checks $STORE_PATH for the following cases
+# - If the path exists, it checks if it is a directory and a btrfs filesystem is mounted there.
+#   If not, it fails with and error.
+# - If the path does not exist, it creates it and mounts a btrfs filesystem.
+prepare_filesystem() {
+  if [ -d "${STORE_PATH}" ]; then
+    validate_filesystem $STORE_PATH
+  else
+    create_and_mount_filesystem $STORE_PATH $STORE_SIZE_BYTES
+  fi
+}
 validate_filesystem() {
   if [ $(stat -f -c "%T" "${1}") != "btrfs" ]; then
     echo "No btrfs filesystem on $1" && exit 1
@@ -32,16 +43,16 @@ validate_filesystem() {
   fi
 }
 
+# Creates a btrfs filesystem and mounts it on $1. The size is defined by $2 in bytes.
 create_and_mount_filesystem() {
-  mkdir -p $STORE_PATH -m 0755
-  backing_store_file=$STORE_PATH/.backing-store
+  mkdir -p $1 -m 0755
+  backing_store_file=$1/.backing-store
   touch $backing_store_file
   chmod 600 $backing_store_file
-  truncate -s $STORE_SIZE_BYTES $backing_store_file
+  truncate -s $2 $backing_store_file
 
-  #mount -t btrfs -o user_subvol_rm_allowed,rw,remount $backing_store_file $STORE_PATH
   mkfs.btrfs -f $backing_store_file
-  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $STORE_PATH
+  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
 }
 
 get_uid_mappings() {
@@ -185,13 +196,8 @@ if [ $(id -u) != 0 ]; then
   echo "Only Root user can initialize store" && exit 1
 fi
 
-if [ -d "${STORE_PATH}" ]; then
-  echo "Store path already exists" && exit 1
-fi
-
-validate_filesystem $(readlink -f "${STORE_PATH}" | xargs dirname)
-create_and_mount_filesystem
-mkdir $STORE_PATH/meta
+prepare_filesystem
+mkdir -p $STORE_PATH/meta
 apply_mappings
 chown_path $STORE_PATH
 configure_store
