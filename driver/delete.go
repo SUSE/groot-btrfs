@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
-	"github.com/SUSE/groot-btrfs/dependency_manager"
+	"github.com/SUSE/groot-btrfs/dependencymanager"
 	errorspkg "github.com/pkg/errors"
 )
 
+// Delete deletes a bundle
 func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 	//TODO: add metrics back to the implementation
 	//defer d.metricsEmitter.TryEmitDurationFrom(logger, MetricImageDeletionTime, time.Now())
@@ -26,10 +28,10 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 		return err
 	}
 
-	dependencyManager := dependency_manager.NewDependencyManager(d.dependenciesPath())
+	dependencyManager := dependencymanager.NewDependencyManager(d.dependenciesPath())
 
 	// TODO: Do we also will need to implement a garbage collector?
-	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
+	imageRefName := fmt.Sprintf(wearegroot.ImageReferenceFormat, bundleID)
 	if err := dependencyManager.Deregister(imageRefName); err != nil {
 		if !os.IsNotExist(errorspkg.Cause(err)) {
 			logger.Error("failed-to-deregister-dependencies", err)
@@ -40,12 +42,13 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 	return nil
 }
 
+// Destroy deletes an image
 func (d *Driver) Destroy(logger lager.Logger, id string) error {
 	logger = logger.Session("deleting-image", lager.Data{"storePath": d.conf.StorePath, "id": id})
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	if ok, err := d.Exists(id); !ok {
+	if ok, err := d.exists(id); !ok {
 		logger.Error("checking-image-path-failed", err)
 		if err != nil {
 			return errorspkg.Wrapf(err, "unable to check image: %s", id)
@@ -55,7 +58,7 @@ func (d *Driver) Destroy(logger lager.Logger, id string) error {
 
 	imagePath := d.imagePath(id)
 	var volDriverErr error
-	if volDriverErr = d.DestroyImage(logger, imagePath); volDriverErr != nil {
+	if volDriverErr = d.destroyImage(logger, imagePath); volDriverErr != nil {
 		logger.Error("destroying-image-failed", volDriverErr)
 	}
 
@@ -67,7 +70,7 @@ func (d *Driver) Destroy(logger lager.Logger, id string) error {
 	return nil
 }
 
-func (d *Driver) Exists(id string) (bool, error) {
+func (d *Driver) exists(id string) (bool, error) {
 	imagePath := d.imagePath(id)
 
 	if _, err := os.Stat(imagePath); err != nil {
@@ -80,7 +83,7 @@ func (d *Driver) Exists(id string) (bool, error) {
 	return true, nil
 }
 
-func (d *Driver) DestroyImage(logger lager.Logger, imagePath string) error {
+func (d *Driver) destroyImage(logger lager.Logger, imagePath string) error {
 	logger = logger.Session("btrfs-destroying-image", lager.Data{"imagePath": imagePath})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -141,13 +144,9 @@ func (d *Driver) listSubvolumes(logger lager.Logger, path string) ([]string, err
 	return strings.Split(string(contents), "\n"), nil
 }
 
-func (d *Driver) Deregister(id string) error {
-	return os.Remove(d.filePath(id))
-}
-
 func (d *Driver) filePath(id string) string {
-	escapedId := strings.Replace(id, "/", "__", -1)
-	return filepath.Join(d.dependenciesPath(), fmt.Sprintf("%s.json", escapedId))
+	escapedID := strings.Replace(id, "/", "__", -1)
+	return filepath.Join(d.dependenciesPath(), fmt.Sprintf("%s.json", escapedID))
 }
 
 func (d *Driver) dependenciesPath() string {

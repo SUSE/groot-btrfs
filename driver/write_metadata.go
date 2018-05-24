@@ -9,6 +9,7 @@ import (
 	errorspkg "github.com/pkg/errors"
 )
 
+// WriteMetadata writes a metadata file for a specific bundle.
 func (d *Driver) WriteMetadata(logger lager.Logger, bundleID string, volumeData groot.ImageMetadata) error {
 	if err := d.writeVolumeMeta(logger, bundleID, base_image_puller.VolumeMeta{Size: volumeData.Size}); err != nil {
 		return errorspkg.Wrapf(err, "writing bundle `%s` metadata", bundleID)

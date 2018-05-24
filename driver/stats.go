@@ -11,6 +11,7 @@ import (
 	errorspkg "github.com/pkg/errors"
 )
 
+// Stats returns volume stats for a specific bundle
 func (d *Driver) Stats(logger lager.Logger, bundleID string) (groot.VolumeStats, error) {
 	imagePath := d.imagePath(bundleID)
 

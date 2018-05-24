@@ -3,7 +3,7 @@ package driver
 import (
 	"path/filepath"
 
-	depman "github.com/SUSE/groot-btrfs/dependency_manager"
+	depman "github.com/SUSE/groot-btrfs/dependencymanager"
 
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/metrics"
@@ -13,7 +13,8 @@ import (
 	"code.cloudfoundry.org/lager"
 )
 
-func (d *Driver) Clean(logger lager.Logger) (bool, error) {
+// clean cleans volumes if they are not being used
+func (d *Driver) clean(logger lager.Logger) (bool, error) {
 	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
 	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
 

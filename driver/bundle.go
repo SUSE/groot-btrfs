@@ -10,11 +10,14 @@ import (
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
-	"github.com/SUSE/groot-btrfs/dependency_manager"
+	"github.com/SUSE/groot-btrfs/dependencymanager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
 
+// Bundle creates a bundle based on the following spec:
+// https://github.com/opencontainers/runtime-spec/blob/master/bundle.md
+// This is the piece that creates the final bundle after the image is unpacked.
 func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (returnSpec specs.Spec, createErr error) {
 	logger = logger.Session("btrfs-creating-snapshot", lager.Data{"IDs": layerIDs})
 	logger.Info("starting")
@@ -46,7 +49,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 			logger.Error("failed-to-unlock", err)
 		}
 
-		if _, err = d.Clean(logger); err != nil {
+		if _, err = d.clean(logger); err != nil {
 			createErr = errorspkg.Wrap(err, "failed-to-cleanup-store")
 		}
 	}()
@@ -80,9 +83,9 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "applying disk limit")
 	}
 
-	dependencyManager := dependency_manager.NewDependencyManager(d.dependenciesPath())
+	dependencyManager := dependencymanager.NewDependencyManager(d.dependenciesPath())
 
-	imageRefName := fmt.Sprintf(ImageReferenceFormat, bundleID)
+	imageRefName := fmt.Sprintf(wearegroot.ImageReferenceFormat, bundleID)
 	if err := dependencyManager.Register(imageRefName, layerIDs); err != nil {
 		if destroyErr := d.Delete(logger, bundleID); destroyErr != nil {
 			logger.Error("failed-to-destroy-image", destroyErr)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+var version string
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	if reexec.Init() {
@@ -19,8 +22,12 @@ func init() {
 }
 
 func main() {
+	// TODO: ask upstream to expose version or the entire urfave/cli App object
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Fprintf(c.App.Writer, "groot-btrfs version %v\n", version)
+	}
 
-	driverConfig := &driver.DriverConfig{}
+	driverConfig := &driver.Config{}
 
 	driverFlags := []cli.Flag{
 		cli.StringFlag{

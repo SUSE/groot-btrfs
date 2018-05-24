@@ -9,10 +9,10 @@ import (
 	grootfsgroot "code.cloudfoundry.org/grootfs/groot"
 )
 
-type MappingList []specs.LinuxIDMapping
+// mappingList is an array of specs.LinuxIDMapping
+type mappingList []specs.LinuxIDMapping
 
-// Given a string like "1:65000:2" this function returns a list of
-// spec.LinuxIDMappings
+// NewMappingList returns a list of spec.LinuxIDMappings given a string like "1:65000:2"
 func NewMappingList(mappings []string) ([]specs.LinuxIDMapping, error) {
 	result := []specs.LinuxIDMapping{}
 
@@ -28,7 +28,7 @@ func NewMappingList(mappings []string) ([]specs.LinuxIDMapping, error) {
 	return result, nil
 }
 
-func (m MappingList) Map(id int) int {
+func (m mappingList) Map(id int) int {
 	for _, m := range m {
 		if delta := id - int(m.ContainerID); delta < int(m.Size) {
 			return int(m.HostID) + delta
@@ -38,7 +38,7 @@ func (m MappingList) Map(id int) int {
 	return id
 }
 
-func (m MappingList) String() string {
+func (m mappingList) String() string {
 	if len(m) == 0 {
 		return "empty"
 	}
@@ -51,7 +51,7 @@ func (m MappingList) String() string {
 	return strings.Join(parts, ",")
 }
 
-func MappingListToIDMappingSpec(m MappingList) []grootfsgroot.IDMappingSpec {
+func mappingListToIDMappingSpec(m mappingList) []grootfsgroot.IDMappingSpec {
 	result := make([]grootfsgroot.IDMappingSpec, len(m))
 
 	for i, v := range m {

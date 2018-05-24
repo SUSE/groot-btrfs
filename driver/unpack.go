@@ -19,11 +19,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type UnpackStrategy struct {
-	Name               string
-	WhiteoutDevicePath string
-}
-
 func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
 	logger = logger.Session("unpacking-layer", lager.Data{"LayerInfo": "TODO"})
 	logger.Debug("starting")
@@ -34,12 +29,12 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 		return 0, err
 	}
 
-	uidMappings, err := d.UIDMappings()
+	uidMappings, err := d.uidMappings()
 	if err != nil {
 		return 0, err
 	}
 
-	gidMappings, err := d.GIDMappings()
+	gidMappings, err := d.gidMappings()
 	if err != nil {
 		return 0, err
 	}
@@ -47,8 +42,8 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 	unpackSpec := base_image_puller.UnpackSpec{
 		TargetPath:    volumePath,
 		Stream:        stream,
-		UIDMappings:   MappingListToIDMappingSpec(uidMappings),
-		GIDMappings:   MappingListToIDMappingSpec(gidMappings),
+		UIDMappings:   mappingListToIDMappingSpec(uidMappings),
+		GIDMappings:   mappingListToIDMappingSpec(gidMappings),
 		BaseDirectory: "", // TODO: is this ok? Looks like groot-windows doesn't use this?
 	}
 
@@ -68,19 +63,19 @@ func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID str
 		parentID = parentIDs[len(parentIDs)-1]
 	}
 
-	volumePath, err := d.CreateVolume(logger, parentID, tempVolumeName)
+	volumePath, err := d.createVolume(logger, parentID, tempVolumeName)
 
 	if err != nil {
 		return "", "", errorspkg.Wrapf(err, "creating volume for layer `%s`", layerID)
 	}
 	logger.Debug("volume-created", lager.Data{"volumePath": volumePath})
 
-	UIDMappings, err := d.UIDMappings()
+	UIDMappings, err := d.uidMappings()
 	if err != nil {
 		return "", "", errors.Wrapf(err, "Can't map UID: %s", err.Error())
 	}
 
-	GIDMappings, err := d.UIDMappings()
+	GIDMappings, err := d.uidMappings()
 	if err != nil {
 		return "", "", errors.Wrapf(err, "Can't map GID: %s", err.Error())
 	}
@@ -142,7 +137,7 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 		return 0, errorspkg.Wrapf(err, "unpacking layer `%s` failed", layerID)
 	}
 
-	if err := d.HandleOpaqueWhiteouts(logger, path.Base(unpackSpec.TargetPath), unpackOutput.OpaqueWhiteouts); err != nil {
+	if err := d.handleOpaqueWhiteouts(logger, path.Base(unpackSpec.TargetPath), unpackOutput.OpaqueWhiteouts); err != nil {
 		logger.Error("handling-opaque-whiteouts", err)
 		return 0, errorspkg.Wrap(err, "handling opaque whiteouts")
 	}
@@ -177,14 +172,15 @@ func ensureBaseDirectoryExists(baseDir, childPath, parentPath string) error {
 		return errorspkg.Wrapf(err, "could not create base directory in child layer")
 	}
 
-	stat_t := stat.Sys().(*syscall.Stat_t)
-	if err := os.Chown(fullChildBaseDir, int(stat_t.Uid), int(stat_t.Gid)); err != nil {
+	statt := stat.Sys().(*syscall.Stat_t)
+	if err := os.Chown(fullChildBaseDir, int(statt.Uid), int(statt.Gid)); err != nil {
 		return errorspkg.Wrapf(err, "could not chown base directory")
 	}
 
 	return nil
 }
 
+// Unpack unpacks a layer given stream. It's assumed to be packed using tar.
 func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
 	return d.unpackLayer(logger, layerID, parentIDs, layerTar.(io.ReadCloser))
 }

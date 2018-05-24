@@ -21,17 +21,21 @@ import (
 )
 
 const (
-	BtrfsType                  = 0x9123683E
-	utimeOmit            int64 = ((1 << 30) - 2)
-	atSymlinkNoFollow    int   = 0x100
-	ImageReferenceFormat       = "image:%s"
+	// BtrfsType is BTRFS_SUPER_MAGIC f_type constant
+	// see `man statfs` for more details
+	BtrfsType = 0x9123683E
+
+	utimeOmit         int64 = ((1 << 30) - 2)
+	atSymlinkNoFollow int   = 0x100
 )
 
+// Driver represents a BTRFS groot Driver
 type Driver struct {
-	conf *DriverConfig
+	conf *Config
 }
 
-type DriverConfig struct {
+// Config contains all the configurations required for the driver
+type Config struct {
 	VolumesDirName      string
 	BtrfsProgsPath      string
 	MetronEndpoint      string
@@ -42,19 +46,22 @@ type DriverConfig struct {
 	GIDMapping          []string
 }
 
-func (c *DriverConfig) BtrfsBinPath() string {
+// BtrfsBinPath calculates the path to the btrfs CLI.
+func (c *Config) BtrfsBinPath() string {
 	return filepath.Join(c.BtrfsProgsPath, "btrfs")
 }
 
-func (c *DriverConfig) MkfsBinPath() string {
+// MkfsBinPath calculates the path to the mkfs.btrfs CLI.
+func (c *Config) MkfsBinPath() string {
 	return filepath.Join(c.BtrfsProgsPath, "mkfs.btrfs")
 }
 
-func NewDriver(conf *DriverConfig) *Driver {
+// NewDriver creates a new Driver
+func NewDriver(conf *Config) *Driver {
 	return &Driver{conf: conf}
 }
 
-func (d *Driver) UIDMappings() (MappingList, error) {
+func (d *Driver) uidMappings() (mappingList, error) {
 	UIDMapping, err := NewMappingList(d.conf.UIDMapping)
 	if err != nil {
 		return nil, err
@@ -63,7 +70,7 @@ func (d *Driver) UIDMappings() (MappingList, error) {
 	return UIDMapping, nil
 }
 
-func (d *Driver) GIDMappings() (MappingList, error) {
+func (d *Driver) gidMappings() (mappingList, error) {
 	GIDMapping, err := NewMappingList(d.conf.GIDMapping)
 	if err != nil {
 		return nil, err
@@ -72,7 +79,7 @@ func (d *Driver) GIDMappings() (MappingList, error) {
 	return GIDMapping, nil
 }
 
-func (d *Driver) parseOwner(uidMappings, gidMappings MappingList) (int, int) {
+func (d *Driver) parseOwner(uidMappings, gidMappings mappingList) (int, int) {
 	uid := os.Getuid()
 	gid := os.Getgid()
 
@@ -204,7 +211,7 @@ func changeModTime(path string, modTime time.Time) error {
 	return nil
 }
 
-func (d *Driver) CreateVolume(logger lager.Logger, parentID, id string) (string, error) {
+func (d *Driver) createVolume(logger lager.Logger, parentID, id string) (string, error) {
 	logger = logger.Session("btrfs-creating-volume", lager.Data{"parentID": parentID, "id": id})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -227,6 +234,7 @@ func (d *Driver) CreateVolume(logger lager.Logger, parentID, id string) (string,
 	return volPath, nil
 }
 
+// MoveVolume uses os.Rename to rename a volume
 func (d *Driver) MoveVolume(logger lager.Logger, from, to string) error {
 	logger = logger.Session("btrfs-moving-volume", lager.Data{"from": from, "to": to})
 	logger.Debug("starting")
@@ -242,6 +250,7 @@ func (d *Driver) MoveVolume(logger lager.Logger, from, to string) error {
 	return nil
 }
 
+// VolumePath returns the path to a specific volume
 func (d *Driver) VolumePath(logger lager.Logger, id string) (string, error) {
 	volPath := filepath.Join(d.conf.StorePath, d.conf.VolumesDirName, id)
 	_, err := os.Stat(volPath)
@@ -252,6 +261,7 @@ func (d *Driver) VolumePath(logger lager.Logger, id string) (string, error) {
 	return "", errorspkg.Wrapf(err, "volume does not exist `%s`", id)
 }
 
+// DestroyVolume destroys a BTRFS volume
 func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
 	logger = logger.Session("btrfs-destroying-volume", lager.Data{"volumeID": id})
 	logger.Info("starting")
@@ -265,6 +275,7 @@ func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
 	return d.destroyBtrfsVolume(logger, filepath.Join(d.conf.StorePath, "volumes", id))
 }
 
+// VolumeSize returns the size of a volume in bytes
 func (d *Driver) VolumeSize(logger lager.Logger, id string) (int64, error) {
 	logger = logger.Session("btrfs-volume-size", lager.Data{"volumeID": id})
 	logger.Debug("starting")
@@ -273,6 +284,7 @@ func (d *Driver) VolumeSize(logger lager.Logger, id string) (int64, error) {
 	return filesystems.VolumeSize(logger, d.conf.StorePath, id)
 }
 
+// Volumes returns the list of existing volume IDs
 func (d *Driver) Volumes(logger lager.Logger) ([]string, error) {
 	logger = logger.Session("btrfs-listing-volumes")
 	logger.Debug("starting")
@@ -290,6 +302,7 @@ func (d *Driver) Volumes(logger lager.Logger) ([]string, error) {
 	return volumes, nil
 }
 
+// ImageIDs returns the list of existing image IDs
 func (d *Driver) ImageIDs(logger lager.Logger) ([]string, error) {
 	images := []string{}
 
@@ -349,7 +362,7 @@ func (d *Driver) destroyQgroup(logger lager.Logger, path string) error {
 	return err
 }
 
-func (d *Driver) HandleOpaqueWhiteouts(logger lager.Logger, id string, opaqueWhiteouts []string) error {
+func (d *Driver) handleOpaqueWhiteouts(logger lager.Logger, id string, opaqueWhiteouts []string) error {
 	volumePath, err := d.VolumePath(logger, id)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package dependency_manager_test
+package dependencymanager_test
 
 import (
 	. "github.com/onsi/ginkgo"
