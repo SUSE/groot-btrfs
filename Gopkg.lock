@@ -4,7 +4,10 @@
 [[projects]]
   branch = "master"
   name = "code.cloudfoundry.org/commandrunner"
-  packages = ["."]
+  packages = [
+    ".",
+    "linux_command_runner"
+  ]
   revision = "501fd662150bcea5a42a9b5c1c283209720788c3"
 
 [[projects]]
@@ -365,6 +368,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0ec880e8f57f319077818b5d2b759a70f592f0f4a93ff6b5605e4db23fede398"
+  inputs-digest = "371e80f5f2a7a6403eb460fbcc5da07be5d633fd3a4614d98d7ca783f0a97a55"
   solver-name = "gps-cdcl"
   solver-version = 1
