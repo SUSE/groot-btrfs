@@ -12,8 +12,8 @@ cat <<-HELP
 Usage: $(basename "${0}") [OPTIONS]
 
 OPTIONS
--u      UID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>")
--g      GID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>")
+-u      UID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>;<Namespace UID>:<Host UID>:<Size>")
+-g      GID mapping for image translation (e.g. "<Namespace UID>:<Host UID>:<Size>;<Namespace UID>:<Host UID>:<Size>")
 -s      The path of the store to be created
 -b      The filesystem size in bytes
 -r      The user and group to look up in /etc/sub{u,g}id for UID/GID mappings, (e.g.: "<username>:<group>")
@@ -53,14 +53,14 @@ create_and_mount_filesystem() {
 
   mkfs.btrfs -f $backing_store_file
   mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
+  btrfs quota enable $1
 }
 
 get_uid_mappings() {
   subuid_path="/etc/subuid"
 
   if [ -n "${UID_MAPPINGS}" ]; then
-    # TODO: Do we need to enable more than one `-u` and `-g` values (as in more mappings)?
-    echo '["'${UID_MAPPINGS}'"]'
+    echo '["'${UID_MAPPINGS//;/\",\"}'"]'
   else
     username=$(echo $ROOTLESS | cut -d: -f1)
     userid=$(id -u $username)
@@ -74,7 +74,7 @@ get_gid_mappings() {
   subgid_path="/etc/subgid"
 
   if [ -n "${GID_MAPPINGS}" ]; then
-    echo '["'${GID_MAPPINGS}'"]'
+    echo '["'${GID_MAPPINGS//;/\",\"}'"]'
   elif [ -n "${ROOTLESS}" ]; then
     groupname=$(echo $ROOTLESS | cut -d: -f2)
     groupid=$(getent group $groupname | cut -d: -f3)
