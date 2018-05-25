@@ -119,16 +119,18 @@ apply_mappings() {
 }
 
 chown_path() {
+  chown_string=""
   owner_uid=$(get_uid_mappings | grep -Eo "[0-9]+:0:1+" | cut -d: -f2)
-  if [ -z $owner_uid ]; then
-    owner_uid="-1"
+  if [ -n $owner_uid ]; then
+    chown_string="${chown_string}${owner_uid}"
   fi
   owner_gid=$(get_gid_mappings | grep -Eo "[0-9]+:0:1+" | cut -d: -f2)
-  if [ -z $owner_gid ]; then
-    owner_gid="-1"
+  if [ -n "${owner_gid}" ]; then
+    echo "here $owner_gid"
+    chown_string="${chown_string}:${owner_gid}"
   fi
 
-  chown $owner_uid:$owner_gid $1
+  chown $chown_string $1
 }
 
 configure_store() {
