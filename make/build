@@ -13,9 +13,13 @@ fi
 printf "${OK_COLOR}==> Building ${ERROR_COLOR}\n"
 
 for OS in ${OSES}; do \
-		 env GOOS=${OS} GOARCH=amd64 go build -o build/${OS}-amd64/groot-btrfs \
-		 -ldflags="-X main.version=${APP_VERSION}" \
-		 ./
+		env GOOS=${OS} GOARCH=amd64 go build -o build/${OS}-amd64/groot-btrfs \
+		-ldflags="-X main.version=${APP_VERSION}" \
+		./
+
+		env GOOS=${OS} GOARCH=amd64 go build -o build/${OS}-amd64/drax \
+		-ldflags="-X main.version=${APP_VERSION}" \
+		./drax/
 done
 
 printf "${NO_COLOR}"

@@ -8,11 +8,13 @@ import (
 	"github.com/urfave/cli"
 )
 
+var version string
+
 func main() {
 	drax := cli.NewApp()
 	drax.Name = "drax"
 	drax.Usage = "The destroyer"
-	drax.Version = "0.1.0"
+	drax.Version = version
 	drax.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "btrfs-bin",

@@ -4,6 +4,7 @@ name: groot-btrfs
 files:
   - groot-btrfs/dependencymanager/**/*
   - groot-btrfs/driver/**/*
+  - groot-btrfs/drax/**/*
   - groot-btrfs/make/**/*
   - groot-btrfs/scripts/**/*
   - groot-btrfs/vendor/**/*

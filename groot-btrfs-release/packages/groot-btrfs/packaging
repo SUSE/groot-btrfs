@@ -25,6 +25,7 @@ cd ${REPO_DIR}
 mkdir -p ${BOSH_INSTALL_TARGET}/bin/
 
 cp build/linux-amd64/groot-btrfs ${BOSH_INSTALL_TARGET}/bin/
+cp build/linux-amd64/drax ${BOSH_INSTALL_TARGET}/bin/
 cp scripts/init-store ${BOSH_INSTALL_TARGET}/bin/
 
 rm -rf ${BOSH_INSTALL_TARGET}/src
