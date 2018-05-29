@@ -49,11 +49,13 @@ func (d *Driver) Destroy(logger lager.Logger, id string) error {
 	defer logger.Info("ending")
 
 	if ok, err := d.exists(id); !ok {
-		logger.Error("checking-image-path-failed", err)
+		logger.Info("checking-image-path-failed", lager.Data{"dirExistsErr": err})
 		if err != nil {
 			return errorspkg.Wrapf(err, "unable to check image: %s", id)
 		}
-		return errorspkg.Errorf("image not found: %s", id)
+
+		logger.Debug(fmt.Sprintf("image not found: %s", id))
+		return nil
 	}
 
 	imagePath := d.imagePath(id)
