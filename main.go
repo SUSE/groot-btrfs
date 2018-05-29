@@ -65,14 +65,6 @@ func main() {
 			Usage:       "The path to the drax cli binary",
 			Destination: &driverConfig.DraxBinPath,
 		},
-		cli.StringSliceFlag{
-			Name:  "uid-mapping",
-			Usage: "UID mapping for image translation, e.g.: <Namespace UID>:<Host UID>:<Size>",
-		},
-		cli.StringSliceFlag{
-			Name:  "gid-mapping",
-			Usage: "GID mapping for image translation, e.g.: <Namespace GID>:<Host GID>:<Size>",
-		},
 	}
 
 	driver := driver.NewDriver(driverConfig)

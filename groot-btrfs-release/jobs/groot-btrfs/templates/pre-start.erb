@@ -28,27 +28,23 @@ main() {
   export PATH=/var/vcap/packages/groot-btrfs/bin:/var/vcap/packages/btrfs-progs/bin:$PATH
 
   local privileged_store_path=${store_mountpoint}/grootfs/store/privileged
-  local privileged_volume_file=${store_mountpoint}/grootfs/store/privileged.backing-store
-  local privileged_config=/var/vcap/jobs/garden/config/privileged_grootfs_config.yml
   local unprivileged_store_path=${store_mountpoint}/grootfs/store/unprivileged
-  local unprivileged_volume_file=${store_mountpoint}/grootfs/store/unprivileged.backing-store
-  local unprivileged_config=/var/vcap/jobs/garden/config/grootfs_config.yml
 
-  init_privileged_store $privileged_config
-  init_unprivileged_store $unprivileged_config
+  init_privileged_store $privileged_store_path
+  init_unprivileged_store $unprivileged_store_path
 
   drax_setup
 }
 
 init_privileged_store() {
   local config_path=$1
-  init-store -s $config_path -b $(volume_size)B
+  init-store -s $config_path -b $(volume_size)
 }
 
 init_unprivileged_store() {
   local config_path=$1
 
-  init-store -s $config_path -b $(volume_size)B
+  init-store -s $config_path -b $(volume_size) \
     -u "$(unprivileged_root_mapping);$(unprivileged_range_mapping)" \
     -g "$(unprivileged_root_mapping);$(unprivileged_range_mapping)"
 }

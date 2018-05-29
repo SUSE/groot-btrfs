@@ -4,7 +4,7 @@
 # with the groot-btrfs driver. It takes over the responsibility from the grootfs
 # `init-store` command which is not part of the groot framework anymore.
 
-set -e
+set -ex
 
 # Help function
 usage() {
@@ -118,19 +118,49 @@ apply_mappings() {
   fi
 }
 
-chown_path() {
-  chown_string=""
-  owner_uid=$(get_uid_mappings | grep -Eo "[0-9]+:0:1+" | cut -d: -f2)
-  if [ -n $owner_uid ]; then
-    chown_string="${chown_string}${owner_uid}"
-  fi
-  owner_gid=$(get_gid_mappings | grep -Eo "[0-9]+:0:1+" | cut -d: -f2)
-  if [ -n "${owner_gid}" ]; then
-    echo "here $owner_gid"
-    chown_string="${chown_string}:${owner_gid}"
-  fi
+find_store_owner() {
+	uid=`id -u`
+	gid=`id -g`
 
-  chown $chown_string $1
+  # These are JSON objects that look like this:
+  # [
+  #   "<Namespace UID>:<Host UID>:<Size>",
+  #   "1:1:4294967293"
+  # ]
+  uidMappings=`get_uid_mappings | jq -r ".[]"`
+  gidMappings=`get_gid_mappings | jq -r ".[]"`
+
+  for uidMapping in $uidMappings ; do
+    namespaceId=`echo $uidMapping | cut -d: -f1`
+    hostId=`echo $uidMapping | cut -d: -f2`
+    size=`echo $uidMapping | cut -d: -f3`
+
+    if [[ "$size" -eq "1" && "$namespaceId" -eq "0" ]] ; then
+      uid=$hostId
+      break
+    fi
+
+    uid="-1"
+  done
+
+  for gidMapping in $gidMappings ; do
+    namespaceId=`echo $gidMapping | cut -d: -f1`
+    hostId=`echo $gidMapping | cut -d: -f2`
+    size=`echo $gidMapping | cut -d: -f3`
+
+    if [[ "$size" -eq "1" && "$namespaceId" -eq "0" ]] ; then
+      gid=$hostId
+      break
+    fi
+
+    gid="-1"
+  done
+
+	echo "${uid}:${gid}"
+}
+
+chown_path() {
+  chown `find_store_owner` $1
 }
 
 configure_store() {

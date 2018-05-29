@@ -13,6 +13,7 @@ import (
 	"time"
 	"unsafe"
 
+	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
@@ -42,8 +43,6 @@ type Config struct {
 	CleanThresholdBytes int64
 	DraxBinPath         string
 	StorePath           string
-	UIDMapping          []string
-	GIDMapping          []string
 }
 
 // BtrfsBinPath calculates the path to the btrfs CLI.
@@ -61,37 +60,29 @@ func NewDriver(conf *Config) *Driver {
 	return &Driver{conf: conf}
 }
 
-func (d *Driver) uidMappings() (mappingList, error) {
-	UIDMapping, err := NewMappingList(d.conf.UIDMapping)
+func (d *Driver) readMappings() (wearegroot.IDMappings, error) {
+	storeNamespacer := wearegroot.NewStoreNamespacer(d.conf.StorePath)
+	idMappings, err := storeNamespacer.Read()
 	if err != nil {
-		return nil, err
+		return wearegroot.IDMappings{}, err
 	}
 
-	return UIDMapping, nil
+	return idMappings, nil
 }
 
-func (d *Driver) gidMappings() (mappingList, error) {
-	GIDMapping, err := NewMappingList(d.conf.GIDMapping)
-	if err != nil {
-		return nil, err
-	}
-
-	return GIDMapping, nil
-}
-
-func (d *Driver) parseOwner(uidMappings, gidMappings mappingList) (int, int) {
+func (d *Driver) parseOwner(idMappings wearegroot.IDMappings) (int, int) {
 	uid := os.Getuid()
 	gid := os.Getgid()
 
-	for _, mapping := range uidMappings {
-		if mapping.Size == 1 && mapping.ContainerID == 0 {
+	for _, mapping := range idMappings.UIDMappings {
+		if mapping.Size == 1 && mapping.NamespaceID == 0 {
 			uid = int(mapping.HostID)
 			break
 		}
 	}
 
-	for _, mapping := range gidMappings {
-		if mapping.Size == 1 && mapping.ContainerID == 0 {
+	for _, mapping := range idMappings.GIDMappings {
+		if mapping.Size == 1 && mapping.NamespaceID == 0 {
 			gid = int(mapping.HostID)
 			break
 		}

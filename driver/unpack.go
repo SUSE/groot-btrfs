@@ -16,7 +16,6 @@ import (
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
 	"code.cloudfoundry.org/lager"
-	"github.com/pkg/errors"
 )
 
 func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
@@ -29,12 +28,7 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 		return 0, err
 	}
 
-	uidMappings, err := d.uidMappings()
-	if err != nil {
-		return 0, err
-	}
-
-	gidMappings, err := d.gidMappings()
+	savedMappings, err := d.readMappings()
 	if err != nil {
 		return 0, err
 	}
@@ -42,8 +36,8 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 	unpackSpec := base_image_puller.UnpackSpec{
 		TargetPath:    volumePath,
 		Stream:        stream,
-		UIDMappings:   mappingListToIDMappingSpec(uidMappings),
-		GIDMappings:   mappingListToIDMappingSpec(gidMappings),
+		UIDMappings:   savedMappings.UIDMappings,
+		GIDMappings:   savedMappings.GIDMappings,
 		BaseDirectory: "", // TODO: is this ok? Looks like groot-windows doesn't use this?
 	}
 
@@ -70,16 +64,12 @@ func (d *Driver) createTemporaryVolumeDirectory(logger lager.Logger, layerID str
 	}
 	logger.Debug("volume-created", lager.Data{"volumePath": volumePath})
 
-	UIDMappings, err := d.uidMappings()
+	savedMappings, err := d.readMappings()
 	if err != nil {
-		return "", "", errors.Wrapf(err, "Can't map UID: %s", err.Error())
+		return "", "", errorspkg.Wrapf(err, "reading id mappings for layer `%s`", layerID)
 	}
 
-	GIDMappings, err := d.uidMappings()
-	if err != nil {
-		return "", "", errors.Wrapf(err, "Can't map GID: %s", err.Error())
-	}
-	ownerUID, ownerGID := d.parseOwner(UIDMappings, GIDMappings)
+	ownerUID, ownerGID := d.parseOwner(savedMappings)
 
 	if ownerUID != 0 || ownerGID != 0 {
 		err = os.Chown(volumePath, ownerUID, ownerGID)
