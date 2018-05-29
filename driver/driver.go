@@ -91,7 +91,7 @@ func (d *Driver) parseOwner(idMappings wearegroot.IDMappings) (int, int) {
 	return uid, gid
 }
 
-func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {
+func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64, imageRootfsPath string) error {
 	logger = logger.Session("applying-quotas", lager.Data{"diskLimit": diskLimit})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -104,7 +104,7 @@ func (d *Driver) applyDiskLimit(logger lager.Logger, diskLimit int64) error {
 	args := []string{
 		"--btrfs-bin", d.conf.BtrfsBinPath(),
 		"limit",
-		"--volume-path", filepath.Join(d.conf.StorePath, "rootfs"),
+		"--volume-path", imageRootfsPath,
 		"--disk-limit-bytes", strconv.FormatInt(diskLimit, 10),
 	}
 

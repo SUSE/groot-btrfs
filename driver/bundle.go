@@ -78,7 +78,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "chmoding snapshot")
 	}
 
-	if err := d.applyDiskLimit(logger, diskLimit); err != nil {
+	if err := d.applyDiskLimit(logger, diskLimit, toPath); err != nil {
 		logger.Error("apply-disk-limit", err)
 		return specs.Spec{}, errorspkg.Wrap(err, "applying disk limit")
 	}
@@ -94,5 +94,5 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "failed to register bundle")
 	}
 
-	return spec, d.applyDiskLimit(logger, diskLimit)
+	return spec, nil
 }
