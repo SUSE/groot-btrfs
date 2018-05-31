@@ -6,9 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	errorspkg "github.com/pkg/errors"
@@ -34,11 +32,14 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 	}
 
 	unpackSpec := base_image_puller.UnpackSpec{
-		TargetPath:    volumePath,
-		Stream:        stream,
-		UIDMappings:   savedMappings.UIDMappings,
-		GIDMappings:   savedMappings.GIDMappings,
-		BaseDirectory: "", // TODO: is this ok? Looks like groot-windows doesn't use this?
+		TargetPath:  volumePath,
+		Stream:      stream,
+		UIDMappings: savedMappings.UIDMappings,
+		GIDMappings: savedMappings.GIDMappings,
+
+		// this is not required, seems to be used only within this experimental context
+		// https://github.com/cloudfoundry/grootfs/blob/9b2998b14aea58fa7f8f5b8bbc1ef2070c51095f/fetcher/layer_fetcher/layer_fetcher.go#L19
+		BaseDirectory: "",
 	}
 
 	volSize, err := d.unpackLayerToTemporaryDirectory(logger, unpackSpec, layerID, parentIDs)
@@ -94,22 +95,6 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	// TODO: add metrics back to the implementation
 	//	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
 
-	if unpackSpec.BaseDirectory != "" {
-		parentID := ""
-		if len(parentIDs) != 0 {
-			parentID = parentIDs[len(parentIDs)-1]
-		}
-
-		parentPath, err := d.VolumePath(logger, parentID)
-		if err != nil {
-			return 0, err
-		}
-
-		if err := ensureBaseDirectoryExists(unpackSpec.BaseDirectory, unpackSpec.TargetPath, parentPath); err != nil {
-			return 0, err
-		}
-	}
-
 	var unpackOutput base_image_puller.UnpackOutput
 
 	// SUSE: Always create a tar unpacker
@@ -134,40 +119,6 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 
 	logger.Debug("layer-unpacked")
 	return unpackOutput.BytesWritten, nil
-}
-
-func ensureBaseDirectoryExists(baseDir, childPath, parentPath string) error {
-	if baseDir == string(filepath.Separator) {
-		return nil
-	}
-
-	if err := ensureBaseDirectoryExists(filepath.Dir(baseDir), childPath, parentPath); err != nil {
-		return err
-	}
-
-	stat, err := os.Stat(filepath.Join(childPath, baseDir))
-	if err == nil {
-		return nil
-	} else if !os.IsNotExist(err) {
-		return errorspkg.Wrapf(err, "failed to stat base directory")
-	}
-
-	stat, err = os.Stat(filepath.Join(parentPath, baseDir))
-	if err != nil {
-		return errorspkg.Wrapf(err, "base directory not found in parent layer")
-	}
-
-	fullChildBaseDir := filepath.Join(childPath, baseDir)
-	if err := os.Mkdir(fullChildBaseDir, stat.Mode()); err != nil {
-		return errorspkg.Wrapf(err, "could not create base directory in child layer")
-	}
-
-	statt := stat.Sys().(*syscall.Stat_t)
-	if err := os.Chown(fullChildBaseDir, int(statt.Uid), int(statt.Gid)); err != nil {
-		return errorspkg.Wrapf(err, "could not chown base directory")
-	}
-
-	return nil
 }
 
 // Unpack unpacks a layer given stream. It's assumed to be packed using tar.

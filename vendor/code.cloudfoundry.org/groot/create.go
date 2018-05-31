@@ -41,7 +41,18 @@ func (g *Groot) Create(handle string, diskLimit int64, excludeImageFromQuota boo
 		return runspec.Spec{}, errors.Wrap(err, "creating bundle")
 	}
 
-	metadata := ImageMetadata{Size: image.Size}
+	if len(image.Config.Config.Env) > 0 {
+		if bundle.Process == nil {
+			bundle.Process = &runspec.Process{}
+		}
+
+		bundle.Process.Env = append(bundle.Process.Env, image.Config.Config.Env...)
+	}
+
+	metadata := ImageMetadata{
+		Size: image.Size,
+	}
+
 	err = g.Driver.WriteMetadata(g.Logger.Session("write-metadata"), handle, metadata)
 
 	return bundle, err
