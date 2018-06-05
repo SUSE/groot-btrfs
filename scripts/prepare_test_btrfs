@@ -14,4 +14,4 @@ function cleanup {
 trap cleanup EXIT
 
 echo "Setting up a btrfs filesystem on $BTRFS"
-sudo ./scripts/init-store -s $BTRFS -b 1G
+sudo ./scripts/init-store -s $BTRFS -b 1G -u 0:1000:1 -g 0:100:1

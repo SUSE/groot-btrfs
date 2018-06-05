@@ -12,8 +12,10 @@ printf "${OK_COLOR}==> Testing${NO_COLOR}\n"
 # TEST_TARGET=driver make test
 if [ -z "${TEST_TARGET}" ]; then
   gocov test $(go list ./... | grep -v /vendor/) -v -timeout 60m | gocov-xml > coverage.xml
+
+  printf "${OK_COLOR}==> Running integration tests${NO_COLOR}\n"
+  ./integration_tests/bundle_test.sh
 else
   echo "Running tests for ${TEST_TARGET}"
   ginkgo $TEST_TARGET
-  #gocov test $TEST_TARGET -v -timeout 60m
 fi
