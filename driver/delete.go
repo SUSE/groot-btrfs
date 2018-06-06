@@ -58,12 +58,12 @@ func (d *Driver) Destroy(logger lager.Logger, id string) error {
 		return nil
 	}
 
-	imagePath := d.imagePath(id)
 	var volDriverErr error
-	if volDriverErr = d.destroyImage(logger, imagePath); volDriverErr != nil {
+	if volDriverErr = d.destroyImage(logger, id); volDriverErr != nil {
 		logger.Error("destroying-image-failed", volDriverErr)
 	}
 
+	imagePath := d.imagePath(id)
 	if _, err := os.Stat(imagePath); err == nil {
 		logger.Error("deleting-image-dir-failed", err, lager.Data{"volumeDriverError": volDriverErr})
 		return errors.New("deleting image path")
@@ -85,7 +85,8 @@ func (d *Driver) exists(id string) (bool, error) {
 	return true, nil
 }
 
-func (d *Driver) destroyImage(logger lager.Logger, imagePath string) error {
+func (d *Driver) destroyImage(logger lager.Logger, bundleID string) error {
+	imagePath := d.imagePath(bundleID)
 	logger = logger.Session("btrfs-destroying-image", lager.Data{"imagePath": imagePath})
 	logger.Info("starting")
 	defer logger.Info("ending")
@@ -113,6 +114,11 @@ func (d *Driver) destroyImage(logger lager.Logger, imagePath string) error {
 			}
 		}
 		err = nil
+	}
+
+	metafilePath := d.bundleMetaFilePath(bundleID)
+	if err := os.Remove(metafilePath); err != nil {
+		logger.Error("removing-image-metadata-file", err)
 	}
 
 	if err := os.RemoveAll(imagePath); err != nil {
