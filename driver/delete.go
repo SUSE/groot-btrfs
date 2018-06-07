@@ -17,8 +17,8 @@ import (
 
 // Delete deletes a bundle
 func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
-	//TODO: add metrics back to the implementation
-	//defer d.metricsEmitter.TryEmitDurationFrom(logger, MetricImageDeletionTime, time.Now())
+	metricsEmitter := metrics.NewEmitter(logger, d.conf.MetronEndpoint)
+	defer metricsEmitter.TryEmitDurationFrom(logger, "ImageDeletionTime", time.Now())
 
 	logger = logger.Session("groot-deleting", lager.Data{"imageID": bundleID})
 	logger.Info("starting")
@@ -30,7 +30,6 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 
 	dependencyManager := dependencymanager.NewDependencyManager(d.dependenciesPath())
 
-	// TODO: Do we also will need to implement a garbage collector?
 	imageRefName := fmt.Sprintf(wearegroot.ImageReferenceFormat, bundleID)
 	if err := dependencyManager.Deregister(imageRefName); err != nil {
 		if !os.IsNotExist(errorspkg.Cause(err)) {

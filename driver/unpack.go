@@ -13,6 +13,7 @@ import (
 
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
+	"code.cloudfoundry.org/grootfs/metrics"
 	"code.cloudfoundry.org/lager"
 )
 
@@ -96,8 +97,8 @@ func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath,
 }
 
 func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec base_image_puller.UnpackSpec, layerID string, parentIDs []string) (volSize int64, err error) {
-	// TODO: add metrics back to the implementation
-	//	defer p.metricsEmitter.TryEmitDurationFrom(logger, MetricsUnpackTimeName, time.Now())
+	metricsEmitter := metrics.NewEmitter(logger, d.conf.MetronEndpoint)
+	defer metricsEmitter.TryEmitDurationFrom(logger, "UnpackTime", time.Now())
 
 	var unpackOutput base_image_puller.UnpackOutput
 
