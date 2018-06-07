@@ -6,6 +6,8 @@
   name = "code.cloudfoundry.org/commandrunner"
   packages = [
     ".",
+    "fake_command_runner",
+    "fake_command_runner/matchers",
     "linux_command_runner"
   ]
   revision = "501fd662150bcea5a42a9b5c1c283209720788c3"
@@ -42,7 +44,9 @@
   name = "code.cloudfoundry.org/lager"
   packages = [
     ".",
-    "chug"
+    "chug",
+    "lagerctx",
+    "lagertest"
   ]
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
   version = "v1.0.0"
@@ -243,6 +247,7 @@
   packages = [
     ".",
     "format",
+    "gbytes",
     "internal/assertion",
     "internal/asyncassertion",
     "internal/oraclematcher",
@@ -368,6 +373,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "371e80f5f2a7a6403eb460fbcc5da07be5d633fd3a4614d98d7ca783f0a97a55"
+  inputs-digest = "94c0f21b2862ebff196e6c7f28d8d584ed6203493129ff7516c1cc8b78ac722f"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+TMPDIR=`mktemp -d`
+if [[ ! "$TMPDIR" || ! -d "$TMPDIR" ]]; then
+  echo "Could not create temp dir for btrfs"
+  exit 1
+fi
+
+export BTRFS=$TMPDIR/btrfs
+function cleanup {
+  sudo ./scripts/delete-store $BTRFS
+  echo "Deleted temp btrfs filesystem $BTRFS"
+}
+trap cleanup EXIT
+
+echo "Setting up a btrfs filesystem on $BTRFS"
+sudo ./scripts/init-store -s $BTRFS -b 1G -u 0:1000:1 -g 0:100:1
