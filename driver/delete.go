@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
+	"code.cloudfoundry.org/grootfs/metrics"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
 	"github.com/SUSE/groot-btrfs/dependencymanager"
