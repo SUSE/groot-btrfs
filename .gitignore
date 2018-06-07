@@ -5,3 +5,5 @@ groot-btrfs-release/.dev_builds
 groot-btrfs-release/blobs
 groot-btrfs-release/.blobs
 groot-btrfs-release/config/dev.yml
+
+coverage.xml
