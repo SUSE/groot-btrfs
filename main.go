@@ -22,7 +22,8 @@ func init() {
 }
 
 func main() {
-	// TODO: ask upstream to expose version or the entire urfave/cli App object
+	// TODO: Properly set the app.Version through Run() when this is merged:
+	// https://github.com/cloudfoundry/groot/pull/11/files
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Fprintf(c.App.Writer, "groot-btrfs version %v\n", version)
 	}
