@@ -18,7 +18,7 @@ import (
 )
 
 func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
-	logger = logger.Session("unpacking-layer", lager.Data{"LayerInfo": "TODO"})
+	logger = logger.Session("unpacking-layer", lager.Data{})
 	logger.Debug("starting")
 	defer logger.Debug("ending")
 
