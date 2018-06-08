@@ -2,7 +2,10 @@
 
 set -e
 
+source ./scripts/trap_handling.sh
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CERTS_DIR="test_registry_certs"
 
 . $DIR/../make/include/colors.sh
 printf "${OK_COLOR}==> groot-btrfs integration test suite ${NO_COLOR}\n"
@@ -40,7 +43,8 @@ expect() {
 # btrfs-progs and drax.
 create_image() {
   echo "Creating image ${1} using container ..."
-  docker run -a stdout \
+  #docker run --rm -a stdout -a stderr \
+  docker run --rm -a stdout \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
     -v $DIR/../drax/drax:/bin/drax \
@@ -51,12 +55,12 @@ create_image() {
       --btrfs-progs-path '/sbin/' \
       --store-path /btrfs create \
         --disk-limit-size-bytes 0 \
-        $1 test_image > /dev/null
+        $@ test_image > /dev/null
 }
 
 delete_image() {
   echo "Deleting image ${1} using container ..."
-  docker run -a stdout \
+  docker run --rm -a stdout \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
     -v $DIR/../drax/drax:/bin/drax \
@@ -74,6 +78,54 @@ image_stats() {
   sudo chown root:root $DIR/../drax/drax > /dev/null
   sudo $DIR/../groot-btrfs --drax-bin $DIR/../drax/drax --store-path $BTRFS stats test_image
 }
+
+run_registry() {
+  mkdir -p $CERTS_DIR
+  pushd $CERTS_DIR > /dev/null
+    # Create self signed certificates
+    #openssl genrsa 1024 > domain.key
+    #chmod 400 domain.key
+    openssl req \
+        -new \
+        -newkey rsa:4096 \
+        -days 365 \
+        -nodes \
+        -x509 \
+        -subj "/C=US/ST=Test/L=Test/O=Test/CN=127.0.0.1" \
+        -keyout domain.key \
+        -out domain.crt
+  popd > /dev/null
+
+  docker run --rm -d \
+    --name test-registry \
+    -v `pwd`/$CERTS_DIR:/certs \
+    -e REGISTRY_HTTP_ADDR=0.0.0.0:5000\
+    -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+    -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+    -p 5000:5000 \
+    registry:2
+
+  printf "Waiting local docker registry to launch on 5000."
+  total_secs=0
+  while ! nc -z localhost 5000; do
+    if $total_secs > 5; then
+      fail_with_error "\nFailed to start docker registry after 5 seconds. Exiting"
+    fi
+    sleep 0.5
+    printf "."
+    total_secs+=0.5
+  done
+  printf "\nDocker registry launched\n"
+
+  REGISTRY_IP=$(docker inspect test-registry | jq -r .[0].NetworkSettings.IPAddress)
+}
+
+function cleanup_registry {
+  echo "Cleaning up registry and certs..."
+  docker stop test-registry > /dev/null || docker kill test-registry > /dev/null
+  rm -rf $CERTS_DIR
+}
+trap_add cleanup_registry EXIT
 
 pushd $DIR/..
 source ./scripts/prepare_test_btrfs
@@ -140,5 +192,16 @@ expect "[ -z $(ls ${BTRFS}/volumes | grep ${BUSYBOX_VOLUME}) ]"
 
 message="Testing that volume meta files are deleted upon next creation."
 expect "[ ! -f ${BTRFS}/meta/volume-${BUSYBOX_VOLUME} ]"
+
+run_registry
+docker pull busybox
+docker tag busybox 127.0.0.1:5000/busybox
+docker push 127.0.0.1:5000/busybox
+
+message="Testing that pulling from insecure registries without an explicit whitelist is not possible"
+expect "! create_image docker://${REGISTRY_IP}:5000/busybox"
+
+message="Testing that pulling from insecure registries with an explicit whitelist is not possible"
+expect "create_image --insecure-registry='${REGISTRY_IP}:5000' docker://${REGISTRY_IP}:5000/busybox"
 
 popd > /dev/null
