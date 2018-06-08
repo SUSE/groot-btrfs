@@ -11,9 +11,10 @@ CERTS_DIR="test_registry_certs"
 printf "${OK_COLOR}==> groot-btrfs integration test suite ${NO_COLOR}\n"
 
 compile() {
-  go build -o groot-btrfs
-  chmod +x groot-btrfs
-  go build -o drax/drax github.com/SUSE/groot-btrfs/drax
+  make build
+  chmod +x build/linux-amd64/*
+  sudo chmod +s build/linux-amd64/
+  sudo chown root:root build/linux-amd64/drax
 }
 
 
@@ -47,10 +48,11 @@ create_image() {
   docker run --rm -a stdout \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
-    -v $DIR/../drax/drax:/bin/drax \
+    -v $DIR/../build/linux-amd64/drax:/bin/drax \
+    -v $DIR/../build/linux-amd64/groot-btrfs:/bin/groot-btrfs \
     -w '/workdir' \
     splatform/groot-btrfs-integration-tests \
-    ./groot-btrfs \
+    groot-btrfs \
       --drax-bin '/bin/drax' \
       --btrfs-progs-path '/sbin/' \
       --store-path /btrfs create \
@@ -63,10 +65,11 @@ delete_image() {
   docker run --rm -a stdout \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
-    -v $DIR/../drax/drax:/bin/drax \
+    -v $DIR/../build/linux-amd64/drax:/bin/drax \
+    -v $DIR/../build/linux-amd64/groot-btrfs:/bin/groot-btrfs \
     -w '/workdir' \
     splatform/groot-btrfs-integration-tests \
-    ./groot-btrfs \
+    groot-btrfs \
       --drax-bin '/bin/drax' \
       --btrfs-progs-path '/sbin/' \
       --store-path /btrfs delete \
@@ -74,9 +77,7 @@ delete_image() {
 }
 
 image_stats() {
-  sudo chmod +s $DIR/../drax/drax > /dev/null
-  sudo chown root:root $DIR/../drax/drax > /dev/null
-  sudo $DIR/../groot-btrfs --drax-bin $DIR/../drax/drax --store-path $BTRFS stats test_image
+  sudo $DIR/../build/linux-amd64/groot-btrfs --drax-bin $DIR/../build/linux-amd64/drax --store-path $BTRFS stats test_image
 }
 
 run_registry() {
