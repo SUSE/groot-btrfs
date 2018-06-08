@@ -14,7 +14,7 @@ if [ -z "${TEST_TARGET}" ]; then
   gocov test $(go list ./... | grep -v /vendor/) -v -timeout 60m | gocov-xml > coverage.xml
 
   printf "${OK_COLOR}==> Running integration tests${NO_COLOR}\n"
-  ./integration_tests/bundle_test.sh
+  ./integration_tests/suite.sh
 else
   echo "Running tests for ${TEST_TARGET}"
   ginkgo $TEST_TARGET
