@@ -44,6 +44,11 @@ expect() {
 # btrfs-progs and drax.
 create_image() {
   echo "Creating image ${1} using container ..."
+  if [ -n "${2}" ]; then
+    echo "Using insecure registries ${2}..."
+    insecure_registry=" --insecure-registry ${2} "
+  fi
+
   #docker run --rm -a stdout -a stderr \
   docker run --rm -a stdout \
     -v $PWD:/workdir \
@@ -55,9 +60,9 @@ create_image() {
     groot-btrfs \
       --drax-bin '/bin/drax' \
       --btrfs-progs-path '/sbin/' \
-      --store-path /btrfs create \
-        --disk-limit-size-bytes 0 \
-        $@ test_image > /dev/null
+      --store-path /btrfs \
+      ${insecure_registry} \
+      create --disk-limit-size-bytes 0 $1 test_image > /dev/null
 }
 
 delete_image() {
@@ -203,6 +208,6 @@ message="Testing that pulling from insecure registries without an explicit white
 expect "! create_image docker://${REGISTRY_IP}:5000/busybox"
 
 message="Testing that pulling from insecure registries with an explicit whitelist is not possible"
-expect "create_image --insecure-registry='${REGISTRY_IP}:5000' docker://${REGISTRY_IP}:5000/busybox"
+expect "create_image docker://${REGISTRY_IP}:5000/busybox '${REGISTRY_IP}:5000'"
 
 popd > /dev/null

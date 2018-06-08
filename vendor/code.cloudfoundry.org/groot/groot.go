@@ -83,6 +83,10 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 			Value: "",
 			Usage: "Path to config file",
 		},
+		cli.StringSliceFlag{
+			Name:  "insecure-registry",
+			Usage: "Whitelist a private registry",
+		},
 	}, driverFlags...)
 	app.Commands = []cli.Command{
 		{
@@ -96,10 +100,6 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 					Name:  "exclude-image-from-quota",
 					Usage: "Set disk limit to be exclusive (i.e.: excluding image layers)",
 				},
-				cli.StringSliceFlag{
-					Name:  "insecure-registry",
-					Usage: "Whitelist a private registry",
-				},
 				cli.StringFlag{
 					Name:  "username",
 					Usage: "Username to authenticate in image registry",
@@ -111,7 +111,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 			},
 			Action: func(ctx *cli.Context) error {
 				dockerConfig := DockerConfig{
-					InsecureRegistries: ctx.StringSlice("insecure-registry"),
+					InsecureRegistries: ctx.GlobalStringSlice("insecure-registry"),
 					Username:           ctx.String("username"),
 					Password:           ctx.String("password"),
 				}
@@ -136,7 +136,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 			Name: "pull",
 			Action: func(ctx *cli.Context) error {
 				dockerConfig := DockerConfig{
-					InsecureRegistries: ctx.StringSlice("insecure-registry"),
+					InsecureRegistries: ctx.GlobalStringSlice("insecure-registry"),
 					Username:           ctx.String("username"),
 					Password:           ctx.String("password"),
 				}
