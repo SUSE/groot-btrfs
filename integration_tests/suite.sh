@@ -44,20 +44,29 @@ expect() {
 # btrfs-progs and drax.
 create_image() {
   echo "Creating image ${1} using container ..."
+
+  if [ "${2}" == "true" ]; then
+    prepare_docker_conf
+    echo "Using conf file test_docker_conf.yaml..."
+    docker_conf=" -v ${DIR}/test_docker_conf.yaml:/test_docker_conf.yaml "
+    conf_arg=" --config /test_docker_conf.yaml "
+  fi
+
   #docker run --rm -a stdout -a stderr \
   docker run --rm -a stdout \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
     -v $DIR/../build/linux-amd64/drax:/bin/drax \
     -v $DIR/../build/linux-amd64/groot-btrfs:/bin/groot-btrfs \
+    ${docker_conf} \
     -w '/workdir' \
     splatform/groot-btrfs-integration-tests \
     groot-btrfs \
       --drax-bin '/bin/drax' \
       --btrfs-progs-path '/sbin/' \
-      --store-path /btrfs create \
-        --disk-limit-size-bytes 0 \
-        $@ test_image > /dev/null
+      --store-path /btrfs \
+      ${conf_arg} \
+      create --disk-limit-size-bytes 0 $1 test_image > /dev/null
 }
 
 delete_image() {
@@ -127,6 +136,16 @@ function cleanup_registry {
   rm -rf $CERTS_DIR
 }
 trap_add cleanup_registry EXIT
+
+function prepare_docker_conf {
+  cat << EOF > $DIR/test_docker_conf.yaml
+---
+#log_level: debug
+insecure_registries:
+  - ${REGISTRY_IP}:5000
+EOF
+trap_add "rm ${DIR}/test_docker_conf.yaml" EXIT
+}
 
 pushd $DIR/..
 source ./scripts/prepare_test_btrfs
@@ -203,6 +222,6 @@ message="Testing that pulling from insecure registries without an explicit white
 expect "! create_image docker://${REGISTRY_IP}:5000/busybox"
 
 message="Testing that pulling from insecure registries with an explicit whitelist is not possible"
-expect "create_image --insecure-registry='${REGISTRY_IP}:5000' docker://${REGISTRY_IP}:5000/busybox"
+expect "create_image docker://${REGISTRY_IP}:5000/busybox true"
 
 popd > /dev/null
