@@ -1,7 +1,8 @@
 ---
 name: groot-btrfs
 templates:
-  pre-start.erb: bin/pre-start
+  bin/pre-start.erb: bin/pre-start
+  conf/groot-btrfs.yaml.erb: conf/groot-btrfs.yaml
 
 packages:
   - golang1.9
@@ -12,3 +13,11 @@ properties:
   garden.experimental_rootless_mode:
     description: A boolean stating whether or not to run garden-server as a non-root user
     default: false
+
+  groot_btrfs.insecure_docker_registry_list:
+    description: An array of insecure Docker registries in the form of <HOSTNAME|IP>:PORT
+    default: []
+
+  groot_btrfs.log_level:
+    description: "Log level"
+    default: "info"

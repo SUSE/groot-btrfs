@@ -1,0 +1,3 @@
+---
+log_level: <%= p("groot_btrfs.log_level") %>
+insecure_registries: <%= p("groot_btrfs.insecure_docker_registry_list", []).to_json %>
