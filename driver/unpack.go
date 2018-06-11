@@ -43,7 +43,7 @@ func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []st
 		BaseDirectory: "",
 	}
 
-	volSize, err := d.unpackLayerToTemporaryDirectory(logger, unpackSpec, layerID, parentIDs)
+	volSize, err := d.unpackLayerToTemporaryDirectory(logger, unpackSpec, layerID, parentIDs, tempVolumeName)
 	if err != nil {
 		return 0, err
 	}
@@ -96,7 +96,7 @@ func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath,
 	return nil
 }
 
-func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec base_image_puller.UnpackSpec, layerID string, parentIDs []string) (volSize int64, err error) {
+func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec base_image_puller.UnpackSpec, layerID string, parentIDs []string, tempVolumeName string) (volSize int64, err error) {
 	metricsEmitter := metrics.NewEmitter(logger, d.conf.MetronEndpoint)
 	defer metricsEmitter.TryEmitDurationFrom(logger, "UnpackTime", time.Now())
 
@@ -111,7 +111,7 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	)
 
 	if unpackOutput, err = tarUnpacker.Unpack(logger, unpackSpec); err != nil {
-		if errD := d.DestroyVolume(logger, layerID); errD != nil {
+		if errD := d.DestroyVolume(logger, tempVolumeName); errD != nil {
 			logger.Error("volume-cleanup-failed", errD)
 		}
 		return 0, errorspkg.Wrapf(err, "unpacking layer `%s` failed", layerID)
