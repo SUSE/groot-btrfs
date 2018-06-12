@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -22,12 +21,6 @@ func init() {
 }
 
 func main() {
-	// TODO: Properly set the app.Version through Run() when this is merged:
-	// https://github.com/cloudfoundry/groot/pull/11/files
-	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintf(c.App.Writer, "groot-btrfs version %v\n", version)
-	}
-
 	driverConfig := &driver.Config{}
 
 	driverFlags := []cli.Flag{
@@ -70,5 +63,5 @@ func main() {
 
 	driver := driver.NewDriver(driverConfig)
 
-	groot.Run(driver, os.Args, driverFlags)
+	groot.Run(driver, os.Args, driverFlags, version)
 }
