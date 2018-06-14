@@ -6,15 +6,18 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
-	errorspkg "github.com/pkg/errors"
-
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
+	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/metrics"
+	"code.cloudfoundry.org/grootfs/store"
+	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
+	errorspkg "github.com/pkg/errors"
 )
 
 func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
@@ -101,6 +104,19 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	defer metricsEmitter.TryEmitDurationFrom(logger, "UnpackTime", time.Now())
 
 	var unpackOutput base_image_puller.UnpackOutput
+
+	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
+	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
+
+	lockFile, err := iamLocksmith.Lock(wearegroot.GlobalLockKey)
+	if err != nil {
+		return 0, errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = iamLocksmith.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+	}()
 
 	// SUSE: Always create a tar unpacker
 	tarUnpacker, err := unpacker.NewTarUnpacker(
