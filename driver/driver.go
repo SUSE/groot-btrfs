@@ -280,8 +280,11 @@ func (d *Driver) DestroyVolume(logger lager.Logger, id string) error {
 	defer logger.Info("ending")
 
 	volumeMetaFilePath := filesystems.VolumeMetaFilePath(d.conf.StorePath, id)
-	if err := os.Remove(volumeMetaFilePath); err != nil {
-		logger.Error("deleting-metadata-file-failed", err, lager.Data{"path": volumeMetaFilePath})
+
+	if _, err := os.Stat(volumeMetaFilePath); err == nil {
+		if err := os.Remove(volumeMetaFilePath); err != nil {
+			logger.Info("deleting-metadata-file-failed", lager.Data{"path": volumeMetaFilePath, "err": err})
+		}
 	}
 
 	return d.destroyBtrfsVolume(logger, filepath.Join(d.conf.StorePath, "volumes", id))
