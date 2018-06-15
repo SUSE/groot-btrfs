@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
 	"github.com/SUSE/groot-btrfs/dependencymanager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -37,15 +35,12 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		Linux: &specs.Linux{},
 	}
 
-	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
-	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
-
-	lockFile, err := iamLocksmith.Lock(wearegroot.GlobalLockKey)
+	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
 	if err != nil {
 		return specs.Spec{}, errorspkg.Wrap(err, "obtaining a lock")
 	}
 	defer func() {
-		if err = iamLocksmith.Unlock(lockFile); err != nil {
+		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
 			logger.Error("failed-to-unlock", err)
 		}
 

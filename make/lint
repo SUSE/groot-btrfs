@@ -13,7 +13,8 @@ trap "cat ${ISSUES} ; rm -f ${ISSUES}" EXIT
 go list -f '{{ .Dir }}' ./... | while read DIR; do
     # There's a bunch of generated files we don't need to lint
     case "${DIR#${PWD}}" in
-        /vendor/*)                         continue;;
+        /vendor/*)	continue;;
+        /drax/*)	continue;;
     esac
     golint "${DIR}" >> "${ISSUES}"
 done

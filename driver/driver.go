@@ -14,8 +14,10 @@ import (
 	"unsafe"
 
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
+	"code.cloudfoundry.org/grootfs/metrics"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
+	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 	"github.com/tscolari/lagregator"
@@ -32,7 +34,10 @@ const (
 
 // Driver represents a BTRFS groot Driver
 type Driver struct {
-	conf *Config
+	exclusiveLock  *locksmith.FileSystem
+	sharedLock     *locksmith.FileSystem
+	metricsEmitter *metrics.Emitter
+	conf           *Config
 }
 
 // Config contains all the configurations required for the driver
@@ -43,6 +48,7 @@ type Config struct {
 	CleanThresholdBytes int64
 	DraxBinPath         string
 	StorePath           string
+	LockDir             string
 }
 
 // BtrfsBinPath calculates the path to the btrfs CLI.
@@ -57,7 +63,22 @@ func (c *Config) MkfsBinPath() string {
 
 // NewDriver creates a new Driver
 func NewDriver(conf *Config) *Driver {
-	return &Driver{conf: conf}
+
+	logger := lager.NewLogger("groot-btrfs-metrics-emmiter-init")
+	metricsEmitter := metrics.NewEmitter(logger, conf.MetronEndpoint)
+
+	os.MkdirAll(conf.lockDir(), 0755)
+
+	return &Driver{
+		conf:           conf,
+		metricsEmitter: metricsEmitter,
+		exclusiveLock:  locksmith.NewExclusiveFileSystem(conf.lockDir()).WithMetrics(metricsEmitter),
+		sharedLock:     locksmith.NewSharedFileSystem(conf.lockDir()).WithMetrics(metricsEmitter),
+	}
+}
+
+func (c *Config) lockDir() string {
+	return filepath.Join(c.StorePath, store.LocksDirName)
 }
 
 func (d *Driver) readMappings() (wearegroot.IDMappings, error) {

@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/grootfs/base_image_puller"
+	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
@@ -21,6 +22,17 @@ func (d *Driver) bundleMetaFilePath(bundleID string) string {
 
 // WriteMetadata writes a metadata file for a specific bundle.
 func (d *Driver) WriteMetadata(logger lager.Logger, bundleID string, metadata groot.ImageMetadata) error {
+
+	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	if err != nil {
+		return errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+	}()
+
 	metaFile, err := os.Create(d.bundleMetaFilePath(bundleID))
 	if err != nil {
 		return errorspkg.Wrap(err, "creating metadata file")

@@ -106,7 +106,7 @@ run_registry() {
         -out domain.crt
   popd > /dev/null
 
-  docker run --rm -d \
+  docker run -d \
     --name test-registry \
     -v `pwd`/$CERTS_DIR:/certs \
     -e REGISTRY_HTTP_ADDR=0.0.0.0:5000\
@@ -133,6 +133,7 @@ run_registry() {
 function cleanup_registry {
   echo "Cleaning up registry and certs..."
   docker stop test-registry > /dev/null || docker kill test-registry > /dev/null
+  docker rm test-registry
   rm -rf $CERTS_DIR
 }
 trap_add cleanup_registry EXIT

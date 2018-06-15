@@ -1,11 +1,13 @@
 package driver_test
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io/ioutil"
-	"os"
 
 	grootdriver "github.com/SUSE/groot-btrfs/driver"
 )
@@ -29,7 +31,7 @@ var _ = Describe("Driver", func() {
 		driverConfig := &grootdriver.Config{
 			VolumesDirName: "volumes",
 			DraxBinPath:    "tmp/drax",
-			StorePath:      storeName,
+			StorePath:      filepath.Join("/tmp", storeName),
 		}
 
 		driver = grootdriver.NewDriver(driverConfig)
@@ -52,8 +54,10 @@ var _ = Describe("Driver", func() {
 
 		It("succcesfully moves the volume directory", func() {
 			newDir := tmpVolumeDir + "-new"
-			driver.MoveVolume(lager.NewLogger("groot"), tmpVolumeDir, newDir)
-			_, err := os.Stat(newDir)
+			err := driver.MoveVolume(lager.NewLogger("groot"), tmpVolumeDir, newDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = os.Stat(newDir)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

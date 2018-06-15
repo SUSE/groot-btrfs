@@ -6,16 +6,12 @@ import (
 	"math/rand"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 )
@@ -100,23 +96,9 @@ func (d *Driver) finalizeVolume(logger lager.Logger, tempVolumeName, volumePath,
 }
 
 func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec base_image_puller.UnpackSpec, layerID string, parentIDs []string, tempVolumeName string) (volSize int64, err error) {
-	metricsEmitter := metrics.NewEmitter(logger, d.conf.MetronEndpoint)
-	defer metricsEmitter.TryEmitDurationFrom(logger, "UnpackTime", time.Now())
+	defer d.metricsEmitter.TryEmitDurationFrom(logger, "UnpackTime", time.Now())
 
 	var unpackOutput base_image_puller.UnpackOutput
-
-	lockDir := filepath.Join(d.conf.StorePath, store.LocksDirName)
-	iamLocksmith := locksmith.NewExclusiveFileSystem(lockDir)
-
-	lockFile, err := iamLocksmith.Lock(wearegroot.GlobalLockKey)
-	if err != nil {
-		return 0, errorspkg.Wrap(err, "obtaining a lock")
-	}
-	defer func() {
-		if err = iamLocksmith.Unlock(lockFile); err != nil {
-			logger.Error("failed-to-unlock", err)
-		}
-	}()
 
 	// SUSE: Always create a tar unpacker
 	tarUnpacker, err := unpacker.NewTarUnpacker(
@@ -144,5 +126,15 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 
 // Unpack unpacks a layer given stream. It's assumed to be packed using tar.
 func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
+	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	if err != nil {
+		return 0, errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+	}()
+
 	return d.unpackLayer(logger, layerID, parentIDs, layerTar.(io.ReadCloser))
 }

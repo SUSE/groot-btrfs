@@ -10,7 +10,6 @@ import (
 	"time"
 
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
 	"github.com/SUSE/groot-btrfs/dependencymanager"
@@ -19,12 +18,21 @@ import (
 
 // Delete deletes a bundle
 func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
-	metricsEmitter := metrics.NewEmitter(logger, d.conf.MetronEndpoint)
-	defer metricsEmitter.TryEmitDurationFrom(logger, "ImageDeletionTime", time.Now())
+	defer d.metricsEmitter.TryEmitDurationFrom(logger, "ImageDeletionTime", time.Now())
 
 	logger = logger.Session("groot-deleting", lager.Data{"imageID": bundleID})
 	logger.Info("starting")
 	defer logger.Info("ending")
+
+	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	if err != nil {
+		return errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+	}()
 
 	if err := d.Destroy(logger, bundleID); err != nil {
 		return err
