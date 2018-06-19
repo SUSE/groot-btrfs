@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/SUSE/groot-btrfs/dependencymanager"
+
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
-	"github.com/SUSE/groot-btrfs/dependencymanager"
 	errorspkg "github.com/pkg/errors"
 )
 
@@ -24,7 +26,7 @@ func (d *Driver) Delete(logger lager.Logger, bundleID string) error {
 	logger.Info("starting")
 	defer logger.Info("ending")
 
-	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	lockFile, err := d.exclusiveLock.Lock(LockKey)
 	if err != nil {
 		return errorspkg.Wrap(err, "obtaining a lock")
 	}
@@ -161,11 +163,35 @@ func (d *Driver) listSubvolumes(logger lager.Logger, path string) ([]string, err
 	return strings.Split(string(contents), "\n"), nil
 }
 
-func (d *Driver) filePath(id string) string {
-	escapedID := strings.Replace(id, "/", "__", -1)
-	return filepath.Join(d.dependenciesPath(), fmt.Sprintf("%s.json", escapedID))
-}
-
 func (d *Driver) dependenciesPath() string {
 	return filepath.Join(d.conf.StorePath, store.MetaDirName, "dependencies")
+}
+
+func (d *Driver) destroyBtrfsVolume(logger lager.Logger, path string) error {
+	logger = logger.Session("destroying-subvolume", lager.Data{"path": path})
+	logger.Info("starting")
+	defer logger.Info("ending")
+
+	if _, err := os.Stat(path); err != nil {
+		return errorspkg.Wrap(err, "image path not found")
+	}
+
+	if err := d.destroyQgroup(logger, path); err != nil {
+		logger.Error("destroying-quota-groups-failed", err, lager.Data{
+			"warning": "could not delete quota group"})
+	}
+
+	cmd := exec.Command(d.conf.BtrfsBinPath(), "subvolume", "delete", path)
+	logger.Debug("starting-btrfs", lager.Data{"path": cmd.Path, "args": cmd.Args})
+	if contents, err := cmd.CombinedOutput(); err != nil {
+		logger.Error("btrfs-failed", err)
+		return errorspkg.Wrapf(err, "destroying volume %s", strings.TrimSpace(string(contents)))
+	}
+	return nil
+}
+
+func (d *Driver) destroyQgroup(logger lager.Logger, path string) error {
+	_, err := d.runDrax(logger, "--btrfs-bin", d.conf.BtrfsBinPath(), "destroy", "--volume-path", path)
+
+	return err
 }

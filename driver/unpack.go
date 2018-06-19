@@ -3,18 +3,34 @@ package driver
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 )
+
+// Unpack unpacks a layer given stream. It's assumed to be packed using tar.
+func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
+	lockFile, err := d.exclusiveLock.Lock(LockKey)
+	if err != nil {
+		return 0, errorspkg.Wrap(err, "obtaining a lock")
+	}
+	defer func() {
+		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
+			logger.Error("failed-to-unlock", err)
+		}
+	}()
+
+	return d.unpackLayer(logger, layerID, parentIDs, layerTar.(io.ReadCloser))
+}
 
 func (d *Driver) unpackLayer(logger lager.Logger, layerID string, parentIDs []string, stream io.ReadCloser) (int64, error) {
 	logger = logger.Session("unpacking-layer", lager.Data{})
@@ -124,17 +140,33 @@ func (d *Driver) unpackLayerToTemporaryDirectory(logger lager.Logger, unpackSpec
 	return unpackOutput.BytesWritten, nil
 }
 
-// Unpack unpacks a layer given stream. It's assumed to be packed using tar.
-func (d *Driver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
-	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+func cleanWhiteoutDir(path string) error {
+	contents, err := ioutil.ReadDir(path)
 	if err != nil {
-		return 0, errorspkg.Wrap(err, "obtaining a lock")
+		return errorspkg.Wrap(err, "reading whiteout directory")
 	}
-	defer func() {
-		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
-			logger.Error("failed-to-unlock", err)
-		}
-	}()
 
-	return d.unpackLayer(logger, layerID, parentIDs, layerTar.(io.ReadCloser))
+	for _, content := range contents {
+		if err := os.RemoveAll(filepath.Join(path, content.Name())); err != nil {
+			return errorspkg.Wrap(err, "cleaning up whiteout directory")
+		}
+	}
+
+	return nil
+}
+
+func (d *Driver) handleOpaqueWhiteouts(logger lager.Logger, id string, opaqueWhiteouts []string) error {
+	volumePath, err := d.VolumePath(logger, id)
+	if err != nil {
+		return err
+	}
+
+	for _, opaqueWhiteout := range opaqueWhiteouts {
+		parentDir := path.Dir(filepath.Join(volumePath, opaqueWhiteout))
+		if err := cleanWhiteoutDir(parentDir); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

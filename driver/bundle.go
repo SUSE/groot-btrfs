@@ -6,9 +6,12 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	depman "github.com/SUSE/groot-btrfs/dependencymanager"
+
 	wearegroot "code.cloudfoundry.org/grootfs/groot"
+	"code.cloudfoundry.org/grootfs/store"
+	gc "code.cloudfoundry.org/grootfs/store/garbage_collector"
 	"code.cloudfoundry.org/lager"
-	"github.com/SUSE/groot-btrfs/dependencymanager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errorspkg "github.com/pkg/errors"
 )
@@ -35,17 +38,13 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		Linux: &specs.Linux{},
 	}
 
-	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	lockFile, err := d.exclusiveLock.Lock(LockKey)
 	if err != nil {
 		return specs.Spec{}, errorspkg.Wrap(err, "obtaining a lock")
 	}
 	defer func() {
 		if err = d.exclusiveLock.Unlock(lockFile); err != nil {
 			logger.Error("failed-to-unlock", err)
-		}
-
-		if _, err = d.clean(logger); err != nil {
-			createErr = errorspkg.Wrap(err, "failed-to-cleanup-store")
 		}
 	}()
 
@@ -78,7 +77,7 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "applying disk limit")
 	}
 
-	dependencyManager := dependencymanager.NewDependencyManager(d.dependenciesPath())
+	dependencyManager := depman.NewDependencyManager(d.dependenciesPath())
 
 	imageRefName := fmt.Sprintf(wearegroot.ImageReferenceFormat, bundleID)
 	if err := dependencyManager.Register(imageRefName, layerIDs); err != nil {
@@ -89,5 +88,25 @@ func (d *Driver) Bundle(logger lager.Logger, bundleID string, layerIDs []string,
 		return specs.Spec{}, errorspkg.Wrap(err, "failed to register bundle")
 	}
 
+	if _, err = d.clean(logger); err != nil {
+		createErr = errorspkg.Wrap(err, "failed-to-cleanup-store")
+	}
+
 	return spec, nil
+}
+
+// clean cleans volumes if they are not being used
+func (d *Driver) clean(logger lager.Logger) (bool, error) {
+	dependencyManager := depman.NewDependencyManager(d.dependenciesPath())
+	garbageCollector := gc.NewGC(d, d, dependencyManager)
+	storeMeasurer := store.NewStoreMeasurer(d.conf.StorePath, d, garbageCollector)
+
+	cleaner := wearegroot.IamCleaner(
+		d.exclusiveLock,
+		storeMeasurer,
+		garbageCollector,
+		d.metricsEmitter,
+	)
+
+	return cleaner.Clean(logger, d.conf.CleanThresholdBytes)
 }

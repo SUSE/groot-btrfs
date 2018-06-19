@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/grootfs/base_image_puller"
-	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
@@ -16,14 +15,10 @@ import (
 	errorspkg "github.com/pkg/errors"
 )
 
-func (d *Driver) bundleMetaFilePath(bundleID string) string {
-	return filepath.Join(d.conf.StorePath, store.MetaDirName, fmt.Sprintf("bundle-%s-metadata.json", bundleID))
-}
-
 // WriteMetadata writes a metadata file for a specific bundle.
 func (d *Driver) WriteMetadata(logger lager.Logger, bundleID string, metadata groot.ImageMetadata) error {
 
-	lockFile, err := d.exclusiveLock.Lock(wearegroot.GlobalLockKey)
+	lockFile, err := d.exclusiveLock.Lock(LockKey)
 	if err != nil {
 		return errorspkg.Wrap(err, "obtaining a lock")
 	}
@@ -52,4 +47,8 @@ func (d *Driver) WriteVolumeMeta(logger lager.Logger, id string, metadata base_i
 	defer logger.Debug("ending")
 
 	return filesystems.WriteVolumeMeta(logger, d.conf.StorePath, id, metadata)
+}
+
+func (d *Driver) bundleMetaFilePath(bundleID string) string {
+	return filepath.Join(d.conf.StorePath, store.MetaDirName, fmt.Sprintf("bundle-%s-metadata.json", bundleID))
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/groot"
-	wearegroot "code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
 	errorspkg "github.com/pkg/errors"
 )
@@ -22,7 +21,7 @@ func (d *Driver) Stats(logger lager.Logger, bundleID string) (returnStats groot.
 
 	var stats groot.VolumeStats
 
-	lockFile, err := d.sharedLock.Lock(wearegroot.GlobalLockKey)
+	lockFile, err := d.sharedLock.Lock(LockKey)
 	if err != nil {
 		return stats, errorspkg.Wrap(err, "obtaining a lock")
 	}
