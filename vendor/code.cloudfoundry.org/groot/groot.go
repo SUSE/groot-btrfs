@@ -11,9 +11,11 @@ import (
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
 	"code.cloudfoundry.org/groot/imagepuller"
+	"code.cloudfoundry.org/grootfs/store/locksmith"
 	"code.cloudfoundry.org/lager"
 	"github.com/containers/image/types"
 	runspec "github.com/opencontainers/runtime-spec/specs-go"
+	errorspkg "github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -66,6 +68,7 @@ type DockerConfig struct {
 	InsecureRegistries []string
 	Username           string
 	Password           string
+	LocksDir           string
 }
 
 func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
@@ -107,7 +110,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 					Usage: "Password to authenticate in image registry",
 				},
 			},
-			Action: func(ctx *cli.Context) error {
+			Action: func(ctx *cli.Context) (returnErr error) {
 				dockerConfig := DockerConfig{
 					InsecureRegistries: conf.InsecureRegistries,
 					Username:           ctx.String("username"),
@@ -122,6 +125,21 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 
 				handle := ctx.Args()[1]
 				var runtimeSpec runspec.Spec
+
+				if err := os.MkdirAll(conf.LocksDir, 0755); err != nil {
+					return errorspkg.Wrap(err, "creating groot locks dir")
+				}
+				exclusiveLock := locksmith.NewExclusiveFileSystem(conf.LocksDir)
+				lockFile, err := exclusiveLock.Lock(GlobalLockKey)
+				if err != nil {
+					return errorspkg.Wrap(err, "obtaining a lock")
+				}
+				defer func() {
+					if err = exclusiveLock.Unlock(lockFile); err != nil {
+						returnErr = errorspkg.Wrap(err, "failed to unlock")
+					}
+				}()
+
 				runtimeSpec, err = g.Create(handle, ctx.Int64("disk-limit-size-bytes"), ctx.Bool("exclude-image-from-quota"))
 				if err != nil {
 					return err

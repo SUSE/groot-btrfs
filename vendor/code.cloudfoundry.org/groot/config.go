@@ -7,9 +7,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+const GlobalLockKey = "global-groot-lock"
+
 type config struct {
 	LogLevel           string   `yaml:"log_level"`
 	InsecureRegistries []string `yaml:"insecure_registries"`
+	LocksDir           string   `yaml:"locks_dir"`
 }
 
 func parseConfig(configFilePath string) (conf config, err error) {
@@ -39,5 +42,10 @@ func applyDefaults(conf config) config {
 	if conf.LogLevel == "" {
 		conf.LogLevel = "info"
 	}
+
+	if conf.LocksDir == "" {
+		conf.LocksDir = "/tmp/groot-locks/"
+	}
+
 	return conf
 }
