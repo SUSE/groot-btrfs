@@ -52,8 +52,8 @@ create_image() {
     conf_arg=" --config /test_docker_conf.yaml "
   fi
 
-  #docker run --rm -a stdout -a stderr \
-  docker run --rm -a stdout \
+  #docker run --rm -a stdout \
+  docker run --rm -a stdout -a stderr \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
     -v $DIR/../build/linux-amd64/drax:/bin/drax \
@@ -66,7 +66,7 @@ create_image() {
       --btrfs-progs-path '/sbin/' \
       --store-path /btrfs \
       ${conf_arg} \
-      create --disk-limit-size-bytes 0 $1 test_image > /dev/null
+      create --disk-limit-size-bytes 0 $1 test_image
 }
 
 delete_image() {
