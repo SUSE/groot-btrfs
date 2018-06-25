@@ -7,7 +7,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-const GlobalLockKey = "global-groot-lock"
+const GlobalLockKey = "global-groot-command-lock"
 
 type config struct {
 	LogLevel           string   `yaml:"log_level"`
