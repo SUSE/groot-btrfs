@@ -10,7 +10,7 @@ fi
 
 export BTRFS=$TMPDIR/btrfs
 function cleanup {
-  sudo ./scripts/delete-store $BTRFS
+ # sudo ./scripts/delete-store $BTRFS
   echo "Deleted temp btrfs filesystem $BTRFS"
 }
 trap_add cleanup EXIT

@@ -45,7 +45,7 @@ expect() {
 create_image() {
   echo "Creating image ${1} using container ..."
 
-  if [ "${2}" == "true" ]; then
+  if [ "${3}" == "true" ]; then
     prepare_docker_conf
     echo "Using conf file test_docker_conf.yaml..."
     docker_conf=" -v ${DIR}/test_docker_conf.yaml:/test_docker_conf.yaml "
@@ -66,7 +66,7 @@ create_image() {
       --btrfs-progs-path '/sbin/' \
       --store-path /btrfs \
       ${conf_arg} \
-      create --disk-limit-size-bytes 0 $1 test_image
+      create --disk-limit-size-bytes 0 ${1} ${2}
 }
 
 delete_image() {
@@ -86,7 +86,7 @@ delete_image() {
 }
 
 image_stats() {
-  sudo $DIR/../build/linux-amd64/groot-btrfs --drax-bin $DIR/../build/linux-amd64/drax --store-path $BTRFS stats test_image
+  sudo $DIR/../build/linux-amd64/groot-btrfs --drax-bin $DIR/../build/linux-amd64/drax --store-path $BTRFS stats ${1}
 }
 
 run_registry() {
@@ -152,7 +152,7 @@ pushd $DIR/..
 source ./scripts/prepare_test_btrfs
 compile
 
-create_image docker://library/busybox
+create_image docker://library/busybox busybox
 
 message="Testing the right amount of volumes were created."
 expect '[ $(ls -lad $BTRFS/volumes | wc -l) == 1 ]'
@@ -165,7 +165,7 @@ declare -a files=("bin/df" "bin/ifup" "bin/mv" "bin/uname" "bin/yes" "bin/wget"
                 )
 for file in "${files[@]}"; do
   message="Testing that the bundle contains ${file}."
-  expect "[ -f '${BTRFS}/images/test_image/rootfs/$file' ]"
+  expect "[ -f '${BTRFS}/images/busybox/rootfs/$file' ]"
 done
 
 message="Testing that uid mappings were written in namespace.json"
@@ -181,32 +181,32 @@ condition
 BUSYBOX_VOLUME=$(ls ${BTRFS}/volumes)
 
 message="Testing that bundle meta file exists."
-expect "[ -f ${BTRFS}/meta/bundle-test_image-metadata.json ]"
+expect "[ -f ${BTRFS}/meta/bundle-busybox-metadata.json ]"
 
 message="Testing that volume meta files exist."
 expect "[ $(ls ${BTRFS}/meta/volume-${BUSYBOX_VOLUME} | wc -l) == 1 ]"
 
-stats=$(image_stats test_image) || (echo $stats && exit $?)
+stats=$(image_stats busybox) || (echo $stats && exit $?)
 message="Testing that 'stats' command works."
 expect <<condition
 [ -n $(echo $stats | jq -r '[."disk_usage"][]["total_bytes_used"]') ]
 condition
 expect <<condition
-[ -n $(image_stats test_image | jq -r '[."disk_usage"][]["exclusive_bytes_used"]') ]
+[ -n $(image_stats busybox | jq -r '[."disk_usage"][]["exclusive_bytes_used"]') ]
 condition
 
-delete_image test_image
+delete_image busybox
 
 message="Testing that image is deleted."
-expect "[ ! -d ${BTRFS}/images/test_image ]"
+expect "[ ! -d ${BTRFS}/images/busybox ]"
 
 message="Testing that volumes are no longer in dependencies."
 expect "[ -z $(ls ${BTRFS}/meta/dependencies/) ]"
 
 message="Testing that bundle meta file is deleted."
-expect "[ ! -f ${BTRFS}/meta/bundle-test_image-metadata.json ]"
+expect "[ ! -f ${BTRFS}/meta/bundle-busybox-metadata.json ]"
 
-create_image docker://library/alpine
+create_image docker://library/alpine alpine
 
 message="Testing that volumes are removed upon next creation."
 expect "[ -z $(ls ${BTRFS}/volumes | grep ${BUSYBOX_VOLUME}) ]"
@@ -220,9 +220,9 @@ docker tag busybox 127.0.0.1:5000/busybox
 docker push 127.0.0.1:5000/busybox
 
 message="Testing that pulling from insecure registries without an explicit whitelist is not possible"
-expect "! create_image docker://${REGISTRY_IP}:5000/busybox"
+expect "! create_image docker://${REGISTRY_IP}:5000/busybox busybox"
 
 message="Testing that pulling from insecure registries with an explicit whitelist is not possible"
-expect "create_image docker://${REGISTRY_IP}:5000/busybox true"
+expect "create_image docker://${REGISTRY_IP}:5000/busybox busybox true"
 
 popd > /dev/null
