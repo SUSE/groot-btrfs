@@ -135,6 +135,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 					return errorspkg.Wrap(err, "obtaining a lock")
 				}
 				defer func() {
+					fmt.Printf("Trying to unlock\n")
 					if err = exclusiveLock.Unlock(lockFile); err != nil {
 						returnErr = errorspkg.Wrap(err, "failed to unlock")
 					}

@@ -41,6 +41,7 @@ create_image() {
   docker run --rm -a stdout -a stderr \
     -v $PWD:/workdir \
     -v $BTRFS:/btrfs \
+    -v $DIR/../locks/:/tmp/groot-locks \
     -v $DIR/../build/linux-amd64/drax:/bin/drax \
     -v $DIR/../build/linux-amd64/groot-btrfs:/bin/groot-btrfs \
     ${docker_conf} \
@@ -58,6 +59,8 @@ export -f create_image
 pushd $DIR/..
 source ./scripts/prepare_test_btrfs
 compile
+
+sudo rm -rf ${DIR}/results
 
 set -x
 parallel --results ${DIR}/results/ -N2 create_image docker://{1} {2} ::: "library/busybox" "busybox" "library/alpine" "alpine" "viovanov/node-env-tiny" "node-env-tiny"
