@@ -5,10 +5,10 @@ import (
 	"os"
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,7 +48,7 @@ var _ = Describe("Concurrent creations", func() {
 				_, err := runner.Create(groot.CreateSpec{
 					ID:                          fmt.Sprintf("test-%d", idx),
 					BaseImageURL:                integration.String2URL(fmt.Sprintf("oci://%s/assets/oci-test-image/grootfs-busybox:latest", workDir)),
-					Mount:                       mountByDefault(),
+					Mount:                       true,
 					DiskLimit:                   2*1024*1024 + 512*1024,
 					ExcludeBaseImageFromQuota:   true,
 					CleanOnCreate:               true,
@@ -74,7 +74,7 @@ var _ = Describe("Concurrent creations", func() {
 				_, err := runner.Create(groot.CreateSpec{
 					ID:           fmt.Sprintf("test-%d", i),
 					BaseImageURL: integration.String2URL(fmt.Sprintf("oci://%s/assets/oci-test-image/grootfs-busybox:latest", workDir)),
-					Mount:        mountByDefault(),
+					Mount:        true,
 					DiskLimit:    2*1024*1024 + 512*1024,
 				})
 				Expect(err).NotTo(HaveOccurred())

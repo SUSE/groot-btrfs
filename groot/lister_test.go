@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/groot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

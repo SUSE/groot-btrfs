@@ -1,4 +1,4 @@
-package unpacker // import "code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
+package unpacker // import "github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
 
 import (
 	"archive/tar"
@@ -20,9 +20,9 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/urfave/cli"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 func init() {
@@ -80,21 +80,7 @@ type TarUnpacker struct {
 func NewTarUnpacker(unpackStrategy UnpackStrategy) (*TarUnpacker, error) {
 	var woHandler whiteoutHandler
 
-	switch unpackStrategy.Name {
-	case "overlay-xfs":
-		parentDirectory := filepath.Dir(unpackStrategy.WhiteoutDevicePath)
-		whiteoutDevDir, err := os.Open(parentDirectory)
-		if err != nil {
-			return nil, err
-		}
-
-		woHandler = &overlayWhiteoutHandler{
-			whiteoutDevName: filepath.Base(unpackStrategy.WhiteoutDevicePath),
-			whiteoutDevDir:  whiteoutDevDir,
-		}
-	default:
-		woHandler = &defaultWhiteoutHandler{}
-	}
+	woHandler = &defaultWhiteoutHandler{}
 
 	return &TarUnpacker{
 		whiteoutHandler: woHandler,

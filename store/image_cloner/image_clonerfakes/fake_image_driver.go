@@ -4,9 +4,9 @@ package image_clonerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
 )
 
 type FakeImageDriver struct {

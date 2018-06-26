@@ -1,13 +1,8 @@
-# Artifacts
-/grootfs
-/grootfs.exe
-/drax
-/tardis
-playground/grootfs
-playground/drax
-tags
+build/
+groot-btrfs-release/dev_releases
+groot-btrfs-release/.dev_builds
+groot-btrfs-release/blobs
+groot-btrfs-release/.blobs
+groot-btrfs-release/config/dev.yml
 
-# OSX
-.DS_Store
-
-grootfs.iml
+coverage.xml

@@ -4,8 +4,8 @@ package base_image_pullerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
 )
 
 type FakeVolumeDriver struct {

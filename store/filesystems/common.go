@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/store"
 	errorspkg "github.com/pkg/errors"
 )
 

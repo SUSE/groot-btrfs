@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/store/filesystems"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -45,7 +45,7 @@ var _ = Describe("Common", func() {
 		It("returns the correct path size", func() {
 			size, err := filesystems.CalculatePathSize(logger, path)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(size).To(BeNumerically("~", 15096, 100))
+			Expect(size).To(BeNumerically("~", 23319, 100))
 		})
 	})
 

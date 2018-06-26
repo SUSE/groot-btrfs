@@ -1,4 +1,4 @@
-package btrfs // import "code.cloudfoundry.org/grootfs/store/filesystems/btrfs"
+package btrfs // import "github.com/SUSE/groot-btrfs/store/filesystems/btrfs"
 
 import (
 	"bytes"
@@ -15,13 +15,13 @@ import (
 
 	"github.com/tscolari/lagregator"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/filesystems"
-	"code.cloudfoundry.org/grootfs/store/filesystems/spec"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/filesystems"
+	"github.com/SUSE/groot-btrfs/store/filesystems/spec"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
 	errorspkg "github.com/pkg/errors"
 )
 

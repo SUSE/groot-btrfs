@@ -1,4 +1,4 @@
-package store // import "code.cloudfoundry.org/grootfs/store"
+package store // import "github.com/SUSE/groot-btrfs/store"
 import "path/filepath"
 
 const (

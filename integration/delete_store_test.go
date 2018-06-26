@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

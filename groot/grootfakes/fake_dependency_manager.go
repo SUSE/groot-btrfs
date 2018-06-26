@@ -4,7 +4,7 @@ package grootfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type FakeDependencyManager struct {

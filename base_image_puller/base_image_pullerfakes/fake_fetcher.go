@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type FakeFetcher struct {

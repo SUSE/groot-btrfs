@@ -1,4 +1,4 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
 	"fmt"
@@ -8,16 +8,16 @@ import (
 	"code.cloudfoundry.org/commandrunner/linux_command_runner"
 	"code.cloudfoundry.org/lager"
 
-	unpackerpkg "code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
-	storepkg "code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/dependency_manager"
-	"code.cloudfoundry.org/grootfs/store/filesystems/namespaced"
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
-	imageClonerpkg "code.cloudfoundry.org/grootfs/store/image_cloner"
-	locksmithpkg "code.cloudfoundry.org/grootfs/store/locksmith"
+	unpackerpkg "github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/metrics"
+	storepkg "github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/dependency_manager"
+	"github.com/SUSE/groot-btrfs/store/filesystems/namespaced"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
+	imageClonerpkg "github.com/SUSE/groot-btrfs/store/image_cloner"
+	locksmithpkg "github.com/SUSE/groot-btrfs/store/locksmith"
 	errorspkg "github.com/pkg/errors"
 
 	"github.com/urfave/cli"

@@ -3,16 +3,18 @@ package main
 import (
 	"os"
 
-	"code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/commands"
+	"github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/commands"
 
 	"github.com/urfave/cli"
 )
+
+var version string
 
 func main() {
 	drax := cli.NewApp()
 	drax.Name = "drax"
 	drax.Usage = "The destroyer"
-	drax.Version = "0.1.0"
+	drax.Version = version
 	drax.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "btrfs-bin",

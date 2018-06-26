@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/groot/grootfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/groot/grootfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

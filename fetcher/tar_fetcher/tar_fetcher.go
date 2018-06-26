@@ -1,4 +1,4 @@
-package tar_fetcher // import "code.cloudfoundry.org/grootfs/fetcher/tar_fetcher"
+package tar_fetcher // import "github.com/SUSE/groot-btrfs/fetcher/tar_fetcher"
 
 import (
 	"crypto/sha256"
@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"os"
 
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
 	errorspkg "github.com/pkg/errors"
 )
 

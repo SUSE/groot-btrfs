@@ -10,9 +10,7 @@ import (
 
 type Config struct {
 	StorePath      string `yaml:"store"`
-	FSDriver       string `yaml:"driver"`
 	DraxBin        string `yaml:"drax_bin"`
-	TardisBin      string `yaml:"tardis_bin"`
 	BtrfsProgsPath string `yaml:"btrfs_progs_path"`
 	NewuidmapBin   string `yaml:"newuidmap_bin"`
 	NewgidmapBin   string `yaml:"newgidmap_bin"`
@@ -95,24 +93,9 @@ func (b *Builder) WithStorePath(storePath string, isSet bool) *Builder {
 	return b
 }
 
-func (b *Builder) WithFSDriver(driver string, isSet bool) *Builder {
-	if isSet || b.config.FSDriver == "" {
-		b.config.FSDriver = driver
-	}
-
-	return b
-}
-
 func (b *Builder) WithDraxBin(draxBin string, isSet bool) *Builder {
 	if isSet || b.config.DraxBin == "" {
 		b.config.DraxBin = draxBin
-	}
-	return b
-}
-
-func (b *Builder) WithTardisBin(tardisBin string, isSet bool) *Builder {
-	if isSet || b.config.TardisBin == "" {
-		b.config.TardisBin = tardisBin
 	}
 	return b
 }

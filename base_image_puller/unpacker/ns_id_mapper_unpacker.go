@@ -1,4 +1,4 @@
-package unpacker // import "code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
+package unpacker // import "github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
 
 import (
 	"bytes"
@@ -12,9 +12,9 @@ import (
 	"github.com/tscolari/lagregator"
 	"github.com/urfave/cli"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/groot"
 	errorspkg "github.com/pkg/errors"
 )
 

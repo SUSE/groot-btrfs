@@ -1,4 +1,4 @@
-package groot // import "code.cloudfoundry.org/grootfs/groot"
+package groot // import "github.com/SUSE/groot-btrfs/groot"
 
 import (
 	"net/url"

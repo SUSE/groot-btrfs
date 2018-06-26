@@ -1,4 +1,4 @@
-package locksmith // import "code.cloudfoundry.org/grootfs/store/locksmith"
+package locksmith // import "github.com/SUSE/groot-btrfs/store/locksmith"
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store"
 	errorspkg "github.com/pkg/errors"
 )
 

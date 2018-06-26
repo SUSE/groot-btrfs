@@ -4,8 +4,8 @@ package storefakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/store"
 )
 
 type FakeVolumeDriver struct {

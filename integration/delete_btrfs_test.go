@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -134,7 +134,7 @@ var _ = Describe("Delete (btrfs only)", func() {
 		)
 
 		BeforeEach(func() {
-			draxBin, err := gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax")
+			draxBin, err := gexec.Build("github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax")
 			Expect(err).NotTo(HaveOccurred())
 			draxBin = integration.MakeBinaryAccessibleToEveryone(draxBin)
 

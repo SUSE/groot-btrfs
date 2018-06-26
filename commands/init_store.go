@@ -1,14 +1,13 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store/manager"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store/manager"
 
 	errorspkg "github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -27,10 +26,6 @@ var InitStoreCommand = cli.Command{
 		cli.StringSliceFlag{
 			Name:  "gid-mapping",
 			Usage: "GID mapping for image translation, e.g.: <Namespace GID>:<Host GID>:<Size>",
-		},
-		cli.StringFlag{
-			Name:  "rootless",
-			Usage: "The user and group to look up in /etc/sub{u,g}id for UID/GID mappings, e.g.: <username>:<group>",
 		},
 		cli.Int64Flag{
 			Name:  "store-size-bytes",
@@ -54,10 +49,6 @@ var InitStoreCommand = cli.Command{
 		if err != nil {
 			logger.Error("config-builder-failed", err)
 			return cli.NewExitError(err.Error(), 1)
-		}
-
-		if (ctx.IsSet("uid-mapping") || ctx.IsSet("gid-mapping")) && ctx.IsSet("rootless") {
-			return cli.NewExitError("cannot specify --rootless and --uid-mapping/--gid-mapping", 1)
 		}
 
 		storePath := cfg.StorePath
@@ -88,13 +79,6 @@ var InitStoreCommand = cli.Command{
 			return cli.NewExitError(err.Error(), 1)
 		}
 
-		if ctx.IsSet("rootless") {
-			uidMappings, gidMappings, err = lookupMappings(ctx)
-			if err != nil {
-				return cli.NewExitError(err.Error(), 1)
-			}
-		}
-
 		namespacer := groot.NewStoreNamespacer(storePath)
 		spec := manager.InitSpec{
 			UIDMappings:    uidMappings,
@@ -110,21 +94,4 @@ var InitStoreCommand = cli.Command{
 
 		return nil
 	},
-}
-
-func lookupMappings(ctx *cli.Context) ([]groot.IDMappingSpec, []groot.IDMappingSpec, error) {
-	names := strings.Split(ctx.String("rootless"), ":")
-	if len(names) != 2 {
-		return nil, nil, errorspkg.New("invalid --rootless parameter, format must be <user>:<group>")
-	}
-	username, groupname := names[0], names[1]
-	uidMappings, err := readSubUIDMapping(username)
-	if err != nil {
-		return nil, nil, errorspkg.Errorf("error reading mappings for user '%s': %s", username, err)
-	}
-	gidMappings, err := readSubGIDMapping(groupname)
-	if err != nil {
-		return nil, nil, errorspkg.Errorf("error reading mappings for group '%s': %s", groupname, err)
-	}
-	return uidMappings, gidMappings, nil
 }

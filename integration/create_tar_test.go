@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,7 +60,7 @@ var _ = Describe("Create with local TAR images", func() {
 		spec = groot.CreateSpec{
 			BaseImageURL: integration.String2URL(baseImagePath),
 			ID:           randomImageID,
-			Mount:        mountByDefault(),
+			Mount:        true,
 		}
 	})
 
@@ -135,7 +135,7 @@ var _ = Describe("Create with local TAR images", func() {
 			_, err := Runner.Create(groot.CreateSpec{
 				ID:           "my-image-1",
 				BaseImageURL: integration.String2URL(baseImagePath),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -153,7 +153,7 @@ var _ = Describe("Create with local TAR images", func() {
 			createSpec := groot.CreateSpec{
 				ID:           "my-image-2",
 				BaseImageURL: integration.String2URL(baseImage2Path),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			}
 			_, err := Runner.Create(createSpec)
 			Expect(err).NotTo(HaveOccurred())
@@ -172,7 +172,7 @@ var _ = Describe("Create with local TAR images", func() {
 			_, err = runner.Create(groot.CreateSpec{
 				ID:           "my-image-3",
 				BaseImageURL: integration.String2URL(baseImage2Path),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -196,7 +196,7 @@ var _ = Describe("Create with local TAR images", func() {
 				_, err = Runner.WithNoClean().Create(groot.CreateSpec{
 					ID:           "my-image-3",
 					BaseImageURL: integration.String2URL(baseImage2Path),
-					Mount:        mountByDefault(),
+					Mount:        true,
 				})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -240,7 +240,7 @@ var _ = Describe("Create with local TAR images", func() {
 			containerSpec, err := Runner.Create(groot.CreateSpec{
 				ID:           testhelpers.NewRandomID(),
 				BaseImageURL: integration.String2URL(baseImagePath),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(Runner.EnsureMounted(containerSpec)).To(Succeed())
@@ -280,7 +280,7 @@ var _ = Describe("Create with local TAR images", func() {
 			containerSpec, err := Runner.Create(groot.CreateSpec{
 				ID:           testhelpers.NewRandomID(),
 				BaseImageURL: integration.String2URL(baseImagePath),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(Runner.EnsureMounted(containerSpec)).To(Succeed())
 			Expect(err).NotTo(HaveOccurred())
@@ -327,7 +327,7 @@ var _ = Describe("Create with local TAR images", func() {
 			containerSpec, err := Runner.SkipInitStore().Create(groot.CreateSpec{
 				BaseImageURL: integration.String2URL(baseImageFile.Name()),
 				ID:           randomImageID,
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -382,6 +382,7 @@ var _ = Describe("Create with local TAR images", func() {
 		Context("timestamps", func() {
 			BeforeEach(func() {
 				cmd := exec.Command("touch", "-h", "-d", "2014-01-01", path.Join(sourceImagePath, "symlink"))
+				cmd.Env = append(cmd.Env, "TZ=UTC")
 				sess, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess.Wait()).Should(gexec.Exit(0))
@@ -400,7 +401,7 @@ var _ = Describe("Create with local TAR images", func() {
 				symlinkFi, err := os.Lstat(symlinkFilePath)
 				Expect(err).NotTo(HaveOccurred())
 
-				location := time.FixedZone("foo", 0)
+				location := time.UTC
 				modTime := time.Date(2014, 01, 01, 0, 0, 0, 0, location)
 				Expect(symlinkTargetFi.ModTime().Unix()).ToNot(
 					Equal(symlinkFi.ModTime().Unix()),

@@ -20,13 +20,11 @@ import (
 type Runner struct {
 	GrootFSBin string
 
-	Driver string
 	// Store path
 	StorePath     string
 	skipInitStore bool
 	// Binaries
 	DraxBin        string
-	TardisBin      string
 	BtrfsProgsPath string
 	NewuidmapBin   string
 	NewgidmapBin   string
@@ -119,13 +117,6 @@ func (r Runner) makeCmd(subcommand string, args []string) *exec.Cmd {
 	}
 	if r.StorePath != "" {
 		allArgs = append(allArgs, "--store", r.StorePath)
-	}
-	if r.Driver != "" {
-		allArgs = append(allArgs, "--driver", r.Driver)
-	}
-
-	if r.TardisBin != "" {
-		allArgs = append(allArgs, "--tardis-bin", r.TardisBin)
 	}
 	if r.DraxBin != "" {
 		allArgs = append(allArgs, "--drax-bin", r.DraxBin)

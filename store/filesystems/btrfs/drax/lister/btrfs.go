@@ -1,4 +1,4 @@
-package lister // import "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/lister"
+package lister // import "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/lister"
 
 import (
 	"bufio"

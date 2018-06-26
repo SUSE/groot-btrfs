@@ -1,4 +1,4 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
 	"crypto/x509"
@@ -11,23 +11,22 @@ import (
 	"regexp"
 
 	"code.cloudfoundry.org/commandrunner/linux_command_runner"
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	unpackerpkg "code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher"
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher/source"
-	"code.cloudfoundry.org/grootfs/fetcher/tar_fetcher"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
-	storepkg "code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/dependency_manager"
-	"code.cloudfoundry.org/grootfs/store/filesystems/namespaced"
-	"code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs"
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
-	locksmithpkg "code.cloudfoundry.org/grootfs/store/locksmith"
-	"code.cloudfoundry.org/grootfs/store/manager"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	unpackerpkg "github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher/source"
+	"github.com/SUSE/groot-btrfs/fetcher/tar_fetcher"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/metrics"
+	storepkg "github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/dependency_manager"
+	"github.com/SUSE/groot-btrfs/store/filesystems/namespaced"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
+	locksmithpkg "github.com/SUSE/groot-btrfs/store/locksmith"
+	"github.com/SUSE/groot-btrfs/store/manager"
 
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -156,8 +155,8 @@ var CreateCommand = cli.Command{
 		runner := linux_command_runner.New()
 		var unpacker base_image_puller.Unpacker
 		unpackerStrategy := unpackerpkg.UnpackStrategy{
-			Name:               cfg.FSDriver,
-			WhiteoutDevicePath: filepath.Join(storePath, overlayxfs.WhiteoutDevice),
+			Name:               "btrfs",
+			WhiteoutDevicePath: filepath.Join(storePath, "whiteout_dev"),
 		}
 
 		var idMapper unpackerpkg.IDMapper

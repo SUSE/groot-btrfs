@@ -8,19 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"code.cloudfoundry.org/commandrunner/linux_command_runner"
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	unpackerpkg "code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
-	"code.cloudfoundry.org/grootfs/store/filesystems/btrfs"
-	"code.cloudfoundry.org/grootfs/store/filesystems/namespaced"
-	"code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/metrics"
+	"github.com/SUSE/groot-btrfs/store/filesystems/btrfs"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
 	"github.com/opencontainers/runc/libcontainer/user"
-	errorspkg "github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -43,35 +38,12 @@ type fileSystemDriver interface {
 }
 
 func createFileSystemDriver(cfg config.Config) (fileSystemDriver, error) {
-	switch cfg.FSDriver {
-	case "btrfs":
-		return btrfs.NewDriver(filepath.Join(cfg.BtrfsProgsPath, "btrfs"),
-			filepath.Join(cfg.BtrfsProgsPath, "mkfs.btrfs"), cfg.DraxBin, cfg.StorePath), nil
-	case "overlay-xfs":
-		return overlayxfs.NewDriver(cfg.StorePath, cfg.TardisBin), nil
-	default:
-		return nil, errorspkg.Errorf("filesystem driver not supported: %s", cfg.FSDriver)
-	}
+	return btrfs.NewDriver(filepath.Join(cfg.BtrfsProgsPath, "btrfs"),
+		filepath.Join(cfg.BtrfsProgsPath, "mkfs.btrfs"), cfg.DraxBin, cfg.StorePath), nil
 }
 
 func createImageDriver(cfg config.Config, fsDriver fileSystemDriver) (image_cloner.ImageDriver, error) {
-	if !nsImageDriverRequired(cfg) {
-		return fsDriver, nil
-	}
-
-	storeNamespacer := groot.NewStoreNamespacer(cfg.StorePath)
-	idMappings, err := storeNamespacer.Read()
-	if err != nil {
-		return nil, err
-	}
-
-	runner := linux_command_runner.New()
-	idMapper := unpackerpkg.NewIDMapper(cfg.NewuidmapBin, cfg.NewgidmapBin, runner)
-	return namespaced.New(fsDriver, idMappings, idMapper, runner), nil
-}
-
-func nsImageDriverRequired(cfg config.Config) bool {
-	return cfg.FSDriver == "overlay-xfs"
+	return fsDriver, nil
 }
 
 func parseIDMappings(args []string) ([]groot.IDMappingSpec, error) {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type FakeLocksmith struct {

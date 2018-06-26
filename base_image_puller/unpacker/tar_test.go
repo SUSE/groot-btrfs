@@ -12,11 +12,11 @@ import (
 
 	"syscall"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
+	"github.com/SUSE/groot-btrfs/groot"
 	"github.com/containers/storage/pkg/reexec"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -624,61 +624,6 @@ var _ = Describe("Tar unpacker", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(path.Join(targetPath, "b_dir")).NotTo(BeAnExistingFile())
-			})
-		})
-
-		Context("Overlay+XFS", func() {
-			BeforeEach(func() {
-				var err error
-				tarUnpacker, err = unpacker.NewTarUnpacker(unpacker.UnpackStrategy{
-					Name:               "overlay-xfs",
-					WhiteoutDevicePath: whiteoutDevicePath,
-				})
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			commonWhiteoutTests()
-
-			It("creates dev 0 character devices to simulate file deletions", func() {
-				_, err := tarUnpacker.Unpack(logger, base_image_puller.UnpackSpec{
-					Stream:     stream,
-					TargetPath: targetPath,
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				bFilePath := path.Join(targetPath, "b_file")
-				stat, err := os.Stat(bFilePath)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(stat.Mode()).To(Equal(os.ModeCharDevice|os.ModeDevice), "Whiteout file is not a character device")
-				stat_t := stat.Sys().(*syscall.Stat_t)
-				Expect(stat_t.Rdev).To(Equal(uint64(0)), "Whiteout file has incorrect device number")
-
-				aFilePath := path.Join(targetPath, "a_dir", "a_file")
-				stat, err = os.Stat(aFilePath)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(stat.Mode()).To(Equal(os.ModeCharDevice|os.ModeDevice), "Whiteout file is not a character device")
-				stat_t = stat.Sys().(*syscall.Stat_t)
-				Expect(stat_t.Rdev).To(Equal(uint64(0)), "Whiteout file has incorrect device number")
-			})
-
-			Context("when it fails to link the whiteout device", func() {
-				BeforeEach(func() {
-					var err error
-					tarUnpacker, err = unpacker.NewTarUnpacker(unpacker.UnpackStrategy{
-						Name:               "overlay-xfs",
-						WhiteoutDevicePath: "/tmp/not-here",
-					})
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("returns an error", func() {
-					_, err := tarUnpacker.Unpack(logger, base_image_puller.UnpackSpec{
-						Stream:     stream,
-						TargetPath: targetPath,
-					})
-
-					Expect(err).To(MatchError(ContainSubstring("failed to create whiteout node")))
-				})
 			})
 		})
 

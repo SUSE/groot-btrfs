@@ -1,0 +1,25 @@
+#!/bin/sh
+
+OSES="linux"
+
+set -e -o errexit
+
+. make/include/colors.sh
+
+if [ -z "${APP_VERSION}" ]; then
+  . make/include/versioning.sh
+fi
+
+printf "${OK_COLOR}==> Building ${ERROR_COLOR}\n"
+
+for OS in ${OSES}; do \
+		env GOOS=${OS} GOARCH=amd64 go build -o build/${OS}-amd64/groot-btrfs \
+		-ldflags="-X main.version=${APP_VERSION}" \
+		./
+
+		env GOOS=${OS} GOARCH=amd64 go build -o build/${OS}-amd64/drax \
+		-ldflags="-X main.version=${APP_VERSION}" \
+		./store/filesystems/btrfs/drax/
+done
+
+printf "${NO_COLOR}"

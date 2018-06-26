@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"os"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/groot/grootfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/groot/grootfakes"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 
 	. "github.com/onsi/ginkgo"

@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/store"
 	errorspkg "github.com/pkg/errors"
 )
 

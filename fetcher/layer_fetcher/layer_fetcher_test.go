@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher"
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher/layer_fetcherfakes"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher/layer_fetcherfakes"
 	"github.com/containers/image/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

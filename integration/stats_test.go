@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -78,7 +78,7 @@ var _ = Describe("Stats", func() {
 				BaseImageURL: integration.String2URL(baseImagePath),
 				ID:           imageID,
 				DiskLimit:    diskLimit,
-				Mount:        isBtrfs(), // btrfs needs the mount option
+				Mount:        true, // btrfs needs the mount option
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -94,20 +94,11 @@ var _ = Describe("Stats", func() {
 			sess := runAsUser(cmd, GrootfsTestUid, GrootfsTestGid)
 			Eventually(sess, 5*time.Second).Should(gexec.Exit(0))
 
-			if Driver == "overlay-xfs" {
-				expectedStats = groot.VolumeStats{
-					DiskUsage: groot.DiskUsage{
-						TotalBytesUsed:     9445376,
-						ExclusiveBytesUsed: 4202496,
-					},
-				}
-			} else {
-				expectedStats = groot.VolumeStats{
-					DiskUsage: groot.DiskUsage{
-						TotalBytesUsed:     9441280,
-						ExclusiveBytesUsed: 4198400,
-					},
-				}
+			expectedStats = groot.VolumeStats{
+				DiskUsage: groot.DiskUsage{
+					TotalBytesUsed:     9441280,
+					ExclusiveBytesUsed: 4198400,
+				},
 			}
 		})
 
@@ -141,23 +132,19 @@ var _ = Describe("Stats", func() {
 
 		Context("when aux binary doesn't have the suid bit", func() {
 			var (
-				tardisBin, draxBin string
-				runner             runner.Runner
+				draxBin string
+				runner  runner.Runner
 			)
 
 			BeforeEach(func() {
-				draxBin, err := gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax")
+				draxBin, err := gexec.Build("github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax")
 				Expect(err).NotTo(HaveOccurred())
 				draxBin = integration.MakeBinaryAccessibleToEveryone(draxBin)
-				tardisBin, err := gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs/tardis")
-				Expect(err).NotTo(HaveOccurred())
-				tardisBin = integration.MakeBinaryAccessibleToEveryone(tardisBin)
 
-				runner = Runner.WithDraxBin(draxBin).WithTardisBin(tardisBin)
+				runner = Runner.WithDraxBin(draxBin)
 			})
 
 			AfterEach(func() {
-				Expect(os.RemoveAll(tardisBin)).To(Succeed())
 				Expect(os.RemoveAll(draxBin)).To(Succeed())
 			})
 
@@ -181,25 +168,6 @@ var _ = Describe("Stats", func() {
 					_, err := runner.Stats(filepath.Dir(containerSpec.Root.Path))
 					Expect(err.Error()).To(ContainSubstring("missing the setuid bit"))
 				})
-			})
-		})
-
-		Context("when the image has no quotas", func() {
-			BeforeEach(func() {
-				integration.SkipIfNotXFS(Driver)
-				diskLimit = 0
-			})
-
-			It("returns 0 as exclusive usage", func() {
-				stats, err := Runner.Stats(imageID)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(stats.DiskUsage.TotalBytesUsed).To(
-					BeNumerically("~", expectedStats.DiskUsage.TotalBytesUsed-expectedStats.DiskUsage.ExclusiveBytesUsed, 100),
-				)
-				Expect(stats.DiskUsage.ExclusiveBytesUsed).To(
-					BeNumerically("~", 0, 100),
-				)
 			})
 		})
 	})

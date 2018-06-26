@@ -4,7 +4,7 @@ package base_image_pullerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
 )
 
 type FakeDependencyRegisterer struct {

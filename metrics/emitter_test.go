@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/metrics"
-	"code.cloudfoundry.org/grootfs/testhelpers"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/metrics"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/cloudfoundry/sonde-go/events"
 

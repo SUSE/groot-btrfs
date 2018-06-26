@@ -1,13 +1,13 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
 	"fmt"
 	"os"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/store/filesystems"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/store/filesystems"
 
 	errorspkg "github.com/pkg/errors"
 	"github.com/urfave/cli"

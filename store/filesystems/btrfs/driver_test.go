@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/filesystems"
-	"code.cloudfoundry.org/grootfs/store/filesystems/btrfs"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
-	"code.cloudfoundry.org/grootfs/testhelpers"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/filesystems"
+	"github.com/SUSE/groot-btrfs/store/filesystems/btrfs"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -56,7 +56,7 @@ var _ = Describe("Btrfs", func() {
 		metaPath = filepath.Join(storePath, store.MetaDirName)
 		Expect(os.MkdirAll(metaPath, 0755)).To(Succeed())
 
-		draxBinPath, err = gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax")
+		draxBinPath, err = gexec.Build("github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax")
 		Expect(err).NotTo(HaveOccurred())
 		testhelpers.SuidBinary(draxBinPath)
 
@@ -229,7 +229,7 @@ var _ = Describe("Btrfs", func() {
 				Expect(logger).To(ContainSequence(
 					Debug(
 						Message("btrfs.btrfs-creating-volume.starting-btrfs"),
-						Data("path", "/bin/btrfs"),
+						Data("path", "/usr/sbin/btrfs"),
 						Data("args", []string{"btrfs", "subvolume", "create", volumePath}),
 						Data("id", volID),
 					),
@@ -274,7 +274,7 @@ var _ = Describe("Btrfs", func() {
 				Expect(logger).To(ContainSequence(
 					Debug(
 						Message("btrfs.btrfs-creating-volume.starting-btrfs"),
-						Data("path", "/bin/btrfs"),
+						Data("path", "/usr/sbin/btrfs"),
 						Data("args", []string{"btrfs", "subvolume", "snapshot", fromPath, destVolPath}),
 						Data("id", destVolID),
 						Data("parentID", volumeID),
@@ -340,7 +340,7 @@ var _ = Describe("Btrfs", func() {
 				Debug(
 					Message("btrfs.btrfs-creating-snapshot.starting-btrfs"),
 					Data("args", []string{"btrfs", "subvolume", "snapshot", filepath.Join(storePath, store.VolumesDirName, volumeID), filepath.Join(spec.ImagePath, "rootfs")}),
-					Data("path", "/bin/btrfs"),
+					Data("path", "/usr/sbin/btrfs"),
 				),
 			))
 		})
@@ -721,7 +721,7 @@ var _ = Describe("Btrfs", func() {
 				Expect(logger).To(ContainSequence(
 					Debug(
 						Message("btrfs.btrfs-destroying-image.destroying-subvolume.starting-btrfs"),
-						Data("path", "/bin/btrfs"),
+						Data("path", "/usr/sbin/btrfs"),
 						Data("args", []string{"btrfs", "subvolume", "delete", rootfsPath}),
 					),
 				))

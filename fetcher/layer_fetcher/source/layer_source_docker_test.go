@@ -2,6 +2,7 @@ package source_test
 
 import (
 	"compress/gzip"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -9,12 +10,12 @@ import (
 	"os/exec"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher"
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher/source"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/testhelpers"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher/source"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 	"github.com/containers/image/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -109,13 +110,13 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				var err error
-				baseImageURL, err = url.Parse("docker:///cfgarden/private")
+				baseImageURL, err = url.Parse("docker:///viovanov/test")
 				Expect(err).NotTo(HaveOccurred())
 
-				configBlob = "sha256:c2bf00eb303023869c676f91af930a12925c24d677999917e8d52c73fa10b73a"
-				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
+				configBlob = "sha256:d167ceb40f570b1463fa685d5c85ab8389bfc1f8c8ae6398721a826eba0d1117"
+				layerInfos[0].BlobID = "sha256:ff646178418ec68dc4a2b1063ee0fac247f39d6e9f1a67578e0e25df3fc5a69e"
 				layerInfos[0].DiffID = "afe200c63655576eaa5cabe036a2c09920d6aee67653ae75a9d35e0ec27205a5"
-				layerInfos[1].BlobID = "sha256:48ce60c2de08a424e10810c41ec2f00916cfd0f12333e96eb4363eb63723be87"
+				layerInfos[1].BlobID = "sha256:5b9380a86827051584700d2cdb646eabe19fd6bca05b3c331e9cf88af575a43f"
 			})
 
 			Context("when the correct credentials are provided", func() {
@@ -198,7 +199,7 @@ var _ = Describe("Layer source: Docker", func() {
 		It("fetches the config", func() {
 			manifest, err := layerSource.Manifest(logger, baseImageURL)
 			Expect(err).NotTo(HaveOccurred())
-			config, err := manifest.OCIConfig()
+			config, err := manifest.OCIConfig(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(config.RootFS.DiffIDs).To(HaveLen(2))
@@ -211,7 +212,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 			BeforeEach(func() {
 				var err error
-				baseImageURL, err = url.Parse("docker:///cfgarden/private")
+				baseImageURL, err = url.Parse("docker:///viovanov/test")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -224,12 +225,12 @@ var _ = Describe("Layer source: Docker", func() {
 
 			Context("when the correct credentials are provided", func() {
 				It("fetches the config", func() {
-					config, err := manifest.OCIConfig()
+					config, err := manifest.OCIConfig(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(config.RootFS.DiffIDs).To(HaveLen(2))
-					Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal("780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"))
-					Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal("56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"))
+					Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal("34266fca74f9c9ec860d83d880c095b455c140fd89b5c787bb7ae2865a7d12a7"))
+					Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal("0fbd3797562c7254af54436193f37a5b89c4fb8c7c18fad5b88b6f86d4664439"))
 				})
 			})
 		})
@@ -254,7 +255,7 @@ var _ = Describe("Layer source: Docker", func() {
 			It("fetches the config", func() {
 				manifest, err := layerSource.Manifest(logger, baseImageURL)
 				Expect(err).NotTo(HaveOccurred())
-				config, err := manifest.OCIConfig()
+				config, err := manifest.OCIConfig(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(config.RootFS.DiffIDs).To(HaveLen(3))
@@ -365,7 +366,7 @@ var _ = Describe("Layer source: Docker", func() {
 				manifest, err := layerSource.Manifest(logger, baseImageURL)
 				Expect(err).NotTo(HaveOccurred())
 
-				config, err := manifest.OCIConfig()
+				config, err := manifest.OCIConfig(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
@@ -395,13 +396,13 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when using private images", func() {
 			BeforeEach(func() {
 				var err error
-				baseImageURL, err = url.Parse("docker:///cfgarden/private")
+				baseImageURL, err = url.Parse("docker:///viovanov/test")
 				Expect(err).NotTo(HaveOccurred())
 
-				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
-				layerInfos[0].DiffID = "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"
-				layerInfos[1].BlobID = "sha256:48ce60c2de08a424e10810c41ec2f00916cfd0f12333e96eb4363eb63723be87"
-				layerInfos[1].DiffID = "56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"
+				layerInfos[0].BlobID = "sha256:ff646178418ec68dc4a2b1063ee0fac247f39d6e9f1a67578e0e25df3fc5a69e"
+				layerInfos[0].DiffID = "34266fca74f9c9ec860d83d880c095b455c140fd89b5c787bb7ae2865a7d12a7"
+				layerInfos[1].BlobID = "sha256:5b9380a86827051584700d2cdb646eabe19fd6bca05b3c331e9cf88af575a43f"
+				layerInfos[1].DiffID = "0fbd3797562c7254af54436193f37a5b89c4fb8c7c18fad5b88b6f86d4664439"
 			})
 
 			JustBeforeEach(func() {
@@ -423,7 +424,7 @@ var _ = Describe("Layer source: Docker", func() {
 				manifest, err := layerSource.Manifest(logger, baseImageURL)
 				Expect(err).NotTo(HaveOccurred())
 
-				config, err := manifest.OCIConfig()
+				config, err := manifest.OCIConfig(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
@@ -504,13 +505,13 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				var err error
-				baseImageURL, err = url.Parse("docker:///cfgarden/private")
+				baseImageURL, err = url.Parse("docker:///viovanov/test")
 				Expect(err).NotTo(HaveOccurred())
 
 				layerInfos = []groot.LayerInfo{
 					{
-						BlobID:    "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4",
-						DiffID:    "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296",
+						BlobID:    "sha256:ff646178418ec68dc4a2b1063ee0fac247f39d6e9f1a67578e0e25df3fc5a69e",
+						DiffID:    "34266fca74f9c9ec860d83d880c095b455c140fd89b5c787bb7ae2865a7d12a7",
 						MediaType: "application/vnd.oci.image.layer.v1.tar+gzip",
 					},
 				}
@@ -575,7 +576,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the blob does not exist", func() {
 			It("returns an error", func() {
 				_, _, err := layerSource.Blob(logger, baseImageURL, groot.LayerInfo{BlobID: "sha256:steamed-blob"})
-				Expect(err).To(MatchError(ContainSubstring("fetching blob 404")))
+				Expect(err.Error()).To(ContainSubstring("fetching blob 400"))
 			})
 		})
 

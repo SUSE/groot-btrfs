@@ -1,18 +1,18 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
 	"fmt"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/commands/idfinder"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/metrics"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/dependency_manager"
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/commands/idfinder"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/metrics"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/dependency_manager"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
 	errorspkg "github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

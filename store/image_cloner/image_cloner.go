@@ -1,4 +1,4 @@
-package image_cloner // import "code.cloudfoundry.org/grootfs/store/image_cloner"
+package image_cloner // import "github.com/SUSE/groot-btrfs/store/image_cloner"
 
 import (
 	"crypto/sha256"
@@ -9,9 +9,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	errorspkg "github.com/pkg/errors"
 )

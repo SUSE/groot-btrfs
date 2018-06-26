@@ -4,8 +4,8 @@ package grootfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type FakeBaseImagePuller struct {

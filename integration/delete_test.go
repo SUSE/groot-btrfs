@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,7 +48,7 @@ var _ = Describe("Delete", func() {
 		containerSpec, err = Runner.Create(groot.CreateSpec{
 			BaseImageURL: integration.String2URL(baseImagePath),
 			ID:           randomImageID,
-			Mount:        mountByDefault(),
+			Mount:        true,
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})

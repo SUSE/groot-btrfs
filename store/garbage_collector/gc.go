@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
 	errorspkg "github.com/pkg/errors"
 )
 

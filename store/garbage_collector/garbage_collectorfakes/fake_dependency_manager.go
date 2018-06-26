@@ -4,7 +4,7 @@ package garbage_collectorfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
 )
 
 type FakeDependencyManager struct {

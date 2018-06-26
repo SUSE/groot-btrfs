@@ -1,0 +1,15 @@
+---
+name: groot-btrfs
+
+files:
+  - groot-btrfs/dependencymanager/**/*
+  - groot-btrfs/driver/**/*
+  - groot-btrfs/drax/**/*
+  - groot-btrfs/make/**/*
+  - groot-btrfs/vendor/**/*
+  - groot-btrfs/Gopkg.lock
+  - groot-btrfs/Gopkg.toml
+  - groot-btrfs/main.go
+
+dependencies:
+  - golang1.9

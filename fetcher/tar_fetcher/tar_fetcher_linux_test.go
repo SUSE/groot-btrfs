@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"time"
 
-	fetcherpkg "code.cloudfoundry.org/grootfs/fetcher/tar_fetcher"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
+	fetcherpkg "github.com/SUSE/groot-btrfs/fetcher/tar_fetcher"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/image-spec/specs-go/v1"

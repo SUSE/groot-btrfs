@@ -1,11 +1,11 @@
-package commands // import "code.cloudfoundry.org/grootfs/commands"
+package commands // import "github.com/SUSE/groot-btrfs/commands"
 
 import (
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/metrics"
-	"code.cloudfoundry.org/grootfs/store/locksmith"
-	"code.cloudfoundry.org/grootfs/store/manager"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/metrics"
+	"github.com/SUSE/groot-btrfs/store/locksmith"
+	"github.com/SUSE/groot-btrfs/store/manager"
 	"github.com/urfave/cli"
 )
 

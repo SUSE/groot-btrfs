@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -90,12 +90,6 @@ func FindGID(group string) uint32 {
 func SkipIfNotBTRFS(driver string) {
 	if driver != "btrfs" {
 		Skip("These tests are only for BTRFS driver. Skipping.")
-	}
-}
-
-func SkipIfNotXFS(driver string) {
-	if driver != "overlay-xfs" {
-		Skip("These tests are only for Overlay-XFS driver. Skipping.")
 	}
 }
 

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+OSES="linux"
+
+GIT_ROOT=${GIT_ROOT:-$(git rev-parse --show-toplevel)}
+
+set -o errexit
+
+. make/include/colors.sh
+
+printf "${OK_COLOR}==> Installing tools${NO_COLOR}\n"
+#Great tools to have, and used in the build file
+go get -u golang.org/x/tools/cmd/goimports
+go get -u golang.org/x/tools/cmd/cover
+go get -u github.com/golang/lint/golint
+go get github.com/AlekSi/gocov-xml
+
+#Tools for the project
+go get -u github.com/axw/gocov/gocov

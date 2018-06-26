@@ -1,4 +1,4 @@
-package base_image_puller // import "code.cloudfoundry.org/grootfs/base_image_puller"
+package base_image_puller // import "github.com/SUSE/groot-btrfs/base_image_puller"
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
 	errorspkg "github.com/pkg/errors"
 )
 

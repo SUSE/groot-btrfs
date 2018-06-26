@@ -8,9 +8,9 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +30,7 @@ var _ = Describe("List", func() {
 		containerSpec, err = Runner.Create(groot.CreateSpec{
 			BaseImageURL: integration.String2URL(baseImageFile.Name()),
 			ID:           "root-image",
-			Mount:        mountByDefault(),
+			Mount:        true,
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})

@@ -6,10 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -31,7 +31,7 @@ var _ = Describe("Clean", func() {
 			_, err = Runner.Create(groot.CreateSpec{
 				ID:           "my-image-1",
 				BaseImageURL: integration.String2URL(baseImagePath),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -54,7 +54,7 @@ var _ = Describe("Clean", func() {
 				_, err := Runner.Create(groot.CreateSpec{
 					ID:           "my-image-2",
 					BaseImageURL: integration.String2URL(anotherBaseImagePath),
-					Mount:        mountByDefault(),
+					Mount:        true,
 					DiskLimit:    10 * 1024 * 1024,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -139,7 +139,7 @@ var _ = Describe("Clean", func() {
 			_, err := Runner.Create(groot.CreateSpec{
 				ID:           "my-image-1",
 				BaseImageURL: integration.String2URL("docker:///cfgarden/empty:v0.1.1"),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -153,7 +153,7 @@ var _ = Describe("Clean", func() {
 				_, err := Runner.Create(groot.CreateSpec{
 					ID:           "my-image-2",
 					BaseImageURL: integration.String2URL("docker:///cfgarden/garden-busybox"),
-					Mount:        mountByDefault(),
+					Mount:        true,
 				})
 				Expect(err).NotTo(HaveOccurred())
 

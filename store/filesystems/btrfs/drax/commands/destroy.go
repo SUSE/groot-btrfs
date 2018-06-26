@@ -1,11 +1,11 @@
-package commands // import "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/commands"
+package commands // import "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/commands"
 
 import (
 	"os"
 
 	"code.cloudfoundry.org/commandrunner/linux_command_runner"
-	limiterpkg "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/limiter"
 	"code.cloudfoundry.org/lager"
+	limiterpkg "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/limiter"
 	"github.com/urfave/cli"
 )
 

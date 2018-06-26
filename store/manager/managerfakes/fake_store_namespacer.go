@@ -4,8 +4,8 @@ package managerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store/manager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store/manager"
 )
 
 type FakeStoreNamespacer struct {

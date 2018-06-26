@@ -1,14 +1,15 @@
 package source_test
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
 
-	"code.cloudfoundry.org/grootfs/fetcher/layer_fetcher/source"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/fetcher/layer_fetcher/source"
+	"github.com/SUSE/groot-btrfs/groot"
 	"github.com/containers/image/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -80,7 +81,7 @@ var _ = Describe("Layer source: OCI", func() {
 			manifest, err := layerSource.Manifest(logger, baseImageURL)
 			Expect(err).NotTo(HaveOccurred())
 
-			config, err := manifest.OCIConfig()
+			config, err := manifest.OCIConfig(context.TODO())
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(config.RootFS.DiffIDs).To(HaveLen(2))
@@ -155,7 +156,7 @@ var _ = Describe("Layer source: OCI", func() {
 		Context("when the blob has an invalid checksum", func() {
 			It("returns an error", func() {
 				_, _, err := layerSource.Blob(logger, baseImageURL, groot.LayerInfo{BlobID: "sha256:steamed-blob"})
-				Expect(err).To(MatchError(ContainSubstring("invalid checksum digest format")))
+				Expect(err.Error()).To(ContainSubstring("invalid checksum digest length"))
 			})
 		})
 

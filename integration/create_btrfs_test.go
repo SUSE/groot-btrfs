@@ -7,10 +7,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/testhelpers"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -76,25 +76,6 @@ var _ = Describe("Create (btrfs only)", func() {
 			Context("when the drax bin doesn't have uid bit set", func() {
 				BeforeEach(func() {
 					testhelpers.UnsuidBinary(draxBin.Name())
-				})
-
-				Context("and groot is running rootless", func() {
-					BeforeEach(func() {
-						integration.SkipIfRoot(GrootfsTestUid)
-					})
-
-					It("returns a sensible error", func() {
-						_, err := Runner.WithDraxBin(draxBin.Name()).Create(spec)
-						Expect(err.Error()).To(ContainSubstring("missing the setuid bit on drax"))
-					})
-
-					It("doesn't leak the image dir", func() {
-						_, err := Runner.WithDraxBin(draxBin.Name()).Create(spec)
-						Expect(err).To(HaveOccurred())
-
-						imagePath := path.Join(Runner.StorePath, "images", randomImageID)
-						Expect(imagePath).ToNot(BeAnExistingFile())
-					})
 				})
 
 				Context("but groot is running as root", func() {

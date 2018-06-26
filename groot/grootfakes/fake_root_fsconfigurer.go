@@ -4,7 +4,7 @@ package grootfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

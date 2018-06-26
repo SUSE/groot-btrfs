@@ -1,0 +1,33 @@
+---
+name: groot-btrfs
+templates:
+  bin/pre-start.erb: bin/pre-start
+  config/groot-btrfs.yaml.erb: config/groot-btrfs.yaml
+  config/groot-btrfs-privileged.yaml.erb: config/groot-btrfs-privileged.yaml
+
+packages:
+  - btrfs-progs
+  - groot-btrfs
+
+properties:
+
+  garden.experimental_rootless_mode:
+    description: A boolean stating whether or not to run garden-server as a non-root user
+    default: false
+
+  garden.insecure_docker_registry_list:
+    description: An array of insecure Docker registries in the form of <HOSTNAME|IP>:PORT
+    default: []
+
+  grootfs.log_level:
+    description: "Log level for grootfs - can be debug, info, error or fatal."
+    default: info
+
+  grootfs.dropsonde_port:
+    description: "Local metron agent's port."
+    default: 3457
+
+  grootfs.graph_cleanup_threshold_in_mb:
+    description: "Total size of all container image filesystem layers before graph cleanup is activated. -1 disables graph cleanup."
+    default: -1
+

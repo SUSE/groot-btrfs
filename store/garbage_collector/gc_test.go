@@ -4,10 +4,10 @@ import (
 	"errors"
 	"path/filepath"
 
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
-	"code.cloudfoundry.org/grootfs/store/garbage_collector/garbage_collectorfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector/garbage_collectorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

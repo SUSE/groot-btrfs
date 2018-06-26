@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 func (r Runner) List() ([]groot.ImageInfo, error) {

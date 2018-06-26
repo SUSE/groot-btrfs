@@ -4,8 +4,8 @@ package garbage_collectorfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/store/garbage_collector"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/store/garbage_collector"
 )
 
 type FakeImageCloner struct {

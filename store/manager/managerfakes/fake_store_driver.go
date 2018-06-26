@@ -4,8 +4,8 @@ package managerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/store/manager"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/store/manager"
 )
 
 type FakeStoreDriver struct {

@@ -9,8 +9,8 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands/config"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,19 +48,6 @@ func (r Runner) SkipInitStore() Runner {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Drivers
-///////////////////////////////////////////////////////////////////////////////
-func (r Runner) WithDriver(driver string) Runner {
-	r.Driver = driver
-	return r
-}
-
-func (r Runner) WithoutDriver() Runner {
-	r.Driver = ""
-	return r
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // Binaries
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -71,16 +58,6 @@ func (r Runner) WithDraxBin(draxBin string) Runner {
 
 func (r Runner) WithoutDraxBin() Runner {
 	r.DraxBin = ""
-	return r
-}
-
-func (r Runner) WithTardisBin(draxBin string) Runner {
-	r.TardisBin = draxBin
-	return r
-}
-
-func (r Runner) WithoutTardisBin() Runner {
-	r.TardisBin = ""
 	return r
 }
 

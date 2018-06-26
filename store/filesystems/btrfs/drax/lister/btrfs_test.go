@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os/exec"
 
-	listerpkg "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/lister"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	listerpkg "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/lister"
 
 	"code.cloudfoundry.org/commandrunner/fake_command_runner"
 	. "code.cloudfoundry.org/commandrunner/fake_command_runner/matchers"

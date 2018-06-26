@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
+	"github.com/SUSE/groot-btrfs/commands/config"
 	yaml "gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
@@ -40,9 +40,7 @@ var _ = Describe("Builder", func() {
 			Create:         createCfg,
 			Clean:          cleanCfg,
 			StorePath:      "/hello",
-			FSDriver:       "kitten-fs",
 			DraxBin:        "/config/drax",
-			TardisBin:      "/config/tardis",
 			BtrfsProgsPath: "/config/btrfs-progs",
 			NewuidmapBin:   "/config/newuidmap",
 			NewgidmapBin:   "/config/newgidmap",
@@ -172,37 +170,6 @@ var _ = Describe("Builder", func() {
 		})
 	})
 
-	Describe("WithFSDriver", func() {
-		It("overrides the config's filesystem driver entry when command line flag is set", func() {
-			builder = builder.WithFSDriver("dinosaur-fs", true)
-			config, err := builder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(config.FSDriver).To(Equal("dinosaur-fs"))
-		})
-
-		Context("when filesystem driver is not provided via command line", func() {
-			It("uses the config's filesystem driver", func() {
-				builder = builder.WithFSDriver("dinosaur-fs", false)
-				config, err := builder.Build()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(config.FSDriver).To(Equal("kitten-fs"))
-			})
-
-			Context("and filesystem driver is not set in the config", func() {
-				BeforeEach(func() {
-					cfg.FSDriver = ""
-				})
-
-				It("uses the provided filesystem driver", func() {
-					builder = builder.WithFSDriver("dinosaur-fs", false)
-					config, err := builder.Build()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(config.FSDriver).To(Equal("dinosaur-fs"))
-				})
-			})
-		})
-	})
-
 	Describe("WithDraxBin", func() {
 		It("overrides the config's drax path entry when command line flag is set", func() {
 			builder = builder.WithDraxBin("/my/drax", true)
@@ -229,37 +196,6 @@ var _ = Describe("Builder", func() {
 					config, err := builder.Build()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(config.DraxBin).To(Equal("/my/drax"))
-				})
-			})
-		})
-	})
-
-	Describe("WithTardisBin", func() {
-		It("overrides the config's tardis path entry when command line flag is set", func() {
-			builder = builder.WithTardisBin("/my/tardis", true)
-			config, err := builder.Build()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(config.TardisBin).To(Equal("/my/tardis"))
-		})
-
-		Context("when tardis path is not provided via command line", func() {
-			It("uses the config's tardis path ", func() {
-				builder = builder.WithTardisBin("/my/tardis", false)
-				config, err := builder.Build()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(config.TardisBin).To(Equal("/config/tardis"))
-			})
-
-			Context("and tardis path is not set in the config", func() {
-				BeforeEach(func() {
-					cfg.TardisBin = ""
-				})
-
-				It("uses the provided tardis path ", func() {
-					builder = builder.WithTardisBin("/my/tardis", false)
-					config, err := builder.Build()
-					Expect(err).NotTo(HaveOccurred())
-					Expect(config.TardisBin).To(Equal("/my/tardis"))
 				})
 			})
 		})

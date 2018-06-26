@@ -9,7 +9,8 @@ import (
 	"reflect"
 	"sort"
 
-	"code.cloudfoundry.org/grootfs/store"
+	"github.com/SUSE/groot-btrfs/store"
+
 	errorspkg "github.com/pkg/errors"
 )
 

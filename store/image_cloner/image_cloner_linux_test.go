@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store"
-	imageclonerpkg "code.cloudfoundry.org/grootfs/store/image_cloner"
-	"code.cloudfoundry.org/grootfs/store/image_cloner/image_clonerfakes"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store"
+	imageclonerpkg "github.com/SUSE/groot-btrfs/store/image_cloner"
+	"github.com/SUSE/groot-btrfs/store/image_cloner/image_clonerfakes"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 
 	. "github.com/onsi/ginkgo"

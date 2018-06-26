@@ -3,11 +3,10 @@ package runner
 import (
 	"fmt"
 
-	"code.cloudfoundry.org/grootfs/groot"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type InitSpec struct {
-	Rootless       string
 	UIDMappings    []groot.IDMappingSpec
 	GIDMappings    []groot.IDMappingSpec
 	StoreSizeBytes int64
@@ -26,10 +25,6 @@ func (r Runner) InitStore(spec InitSpec) error {
 		args = append(args, "--gid-mapping",
 			fmt.Sprintf("%d:%d:%d", mapping.NamespaceID, mapping.HostID, mapping.Size),
 		)
-	}
-
-	if spec.Rootless != "" {
-		args = append(args, "--rootless", spec.Rootless)
 	}
 
 	if spec.StoreSizeBytes > 0 {

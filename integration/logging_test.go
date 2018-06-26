@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -98,10 +98,10 @@ var _ = Describe("Logging", func() {
 			})
 
 			Context("and the log file cannot be created", func() {
-				It("returns an error to stdout", func() {
+				It("returns an error to stderr", func() {
 					buffer := gbytes.NewBuffer()
 
-					_, err := Runner.WithStdout(buffer).WithLogFile("/path/to/log_file.log").Create(spec)
+					_, err := Runner.WithStderr(buffer).WithLogFile("/path/to/log_file.log").Create(spec)
 					Expect(err).To(HaveOccurred())
 
 					Expect(buffer).To(gbytes.Say("no such file or directory"))

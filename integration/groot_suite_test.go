@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
-	"code.cloudfoundry.org/grootfs/testhelpers"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,7 +42,6 @@ var (
 )
 
 const btrfsMountPath = "/mnt/btrfs-%d"
-const xfsMountPath = "/mnt/xfs-%d"
 
 func TestGroot(t *testing.T) {
 	var (
@@ -53,24 +52,19 @@ func TestGroot(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	SynchronizedBeforeSuite(func() []byte {
-		grootFSBin, err := gexec.Build("code.cloudfoundry.org/grootfs")
+		grootFSBin, err := gexec.Build("github.com/SUSE/groot-btrfs")
 		Expect(err).NotTo(HaveOccurred())
 		grootFSBin = integration.MakeBinaryAccessibleToEveryone(grootFSBin)
 
-		draxBin, err := gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax")
+		draxBin, err := gexec.Build("github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax")
 		Expect(err).NotTo(HaveOccurred())
 		draxBin = integration.MakeBinaryAccessibleToEveryone(draxBin)
 		testhelpers.SuidBinary(draxBin)
 
-		tardisBin, err := gexec.Build("code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs/tardis")
-		Expect(err).NotTo(HaveOccurred())
-		tardisBin = integration.MakeBinaryAccessibleToEveryone(tardisBin)
-		testhelpers.SuidBinary(tardisBin)
-
-		namespacerBin, err := gexec.Build("code.cloudfoundry.org/grootfs/integration/namespacer")
+		namespacerBin, err := gexec.Build("github.com/SUSE/groot-btrfs/integration/namespacer")
 		Expect(err).NotTo(HaveOccurred())
 
-		return []byte(grootFSBin + ":" + draxBin + ":" + tardisBin + ":" + namespacerBin)
+		return []byte(grootFSBin + ":" + draxBin + ":" + ":" + namespacerBin)
 	}, func(data []byte) {
 		var err error
 		binaries := strings.Split(string(data), ":")
@@ -111,12 +105,9 @@ func TestGroot(t *testing.T) {
 	BeforeEach(func() {
 		testhelpers.ReseedRandomNumberGenerator()
 
-		if Driver == "overlay-xfs" {
-			mountPath = fmt.Sprintf(xfsMountPath, GinkgoParallelNode())
-		} else {
-			Driver = "btrfs"
-			mountPath = fmt.Sprintf(btrfsMountPath, GinkgoParallelNode())
-		}
+		Driver = "btrfs"
+		mountPath = fmt.Sprintf(btrfsMountPath, GinkgoParallelNode())
+
 		StorePath = path.Join(mountPath, "store")
 
 		RegistryUsername = os.Getenv("DOCKER_REGISTRY_USERNAME")
@@ -126,17 +117,11 @@ func TestGroot(t *testing.T) {
 			GrootFSBin: GrootFSBin,
 			StorePath:  StorePath,
 			DraxBin:    DraxBin,
-			TardisBin:  TardisBin,
-			Driver:     Driver,
 		}.WithLogLevel(lager.DEBUG).WithStderr(GinkgoWriter).RunningAsUser(GrootfsTestUid, GrootfsTestGid)
 	})
 
 	AfterEach(func() {
-		if Driver == "overlay-xfs" {
-			testhelpers.CleanUpOverlayMounts(StorePath)
-		} else {
-			testhelpers.CleanUpBtrfsSubvolumes(mountPath)
-		}
+		testhelpers.CleanUpBtrfsSubvolumes(mountPath)
 
 		Expect(os.RemoveAll(StorePath)).To(Succeed())
 	})
@@ -155,12 +140,4 @@ func writeMegabytes(outputPath string, mb int) error {
 		return errors.New(string(sess.Err.Contents()))
 	}
 	return nil
-}
-
-func mountByDefault() bool {
-	return GrootfsTestUid == 0 || isBtrfs()
-}
-
-func isBtrfs() bool {
-	return Driver == "btrfs"
 }

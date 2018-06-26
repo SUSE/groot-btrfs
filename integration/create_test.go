@@ -9,14 +9,13 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/integration"
-	"code.cloudfoundry.org/grootfs/integration/runner"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs"
-	"code.cloudfoundry.org/grootfs/testhelpers"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/integration"
+	"github.com/SUSE/groot-btrfs/integration/runner"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/testhelpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,7 +57,7 @@ var _ = Describe("Create", func() {
 		containerSpec, err := Runner.Create(groot.CreateSpec{
 			BaseImageURL: integration.String2URL(baseImagePath),
 			ID:           randomImageID,
-			Mount:        mountByDefault(),
+			Mount:        true,
 		})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -90,7 +89,7 @@ var _ = Describe("Create", func() {
 			_, err := runner.Create(groot.CreateSpec{
 				BaseImageURL: integration.String2URL(baseImagePath),
 				ID:           randomImageID,
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).To(MatchError(ContainSubstring("Store path is not initialized. Please run init-store.")))
 		})
@@ -117,7 +116,7 @@ var _ = Describe("Create", func() {
 				Create(groot.CreateSpec{
 					ID:           "some-id",
 					BaseImageURL: integration.String2URL(baseImagePath),
-					Mount:        mountByDefault(),
+					Mount:        true,
 				})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -152,7 +151,7 @@ var _ = Describe("Create", func() {
 		It("allows the mapped user to have access to the created image", func() {
 			containerSpec, err := Runner.WithLogLevel(lager.DEBUG).SkipInitStore().
 				Create(groot.CreateSpec{
-					Mount:        mountByDefault(),
+					Mount:        true,
 					ID:           "some-id",
 					BaseImageURL: integration.String2URL(baseImagePath),
 				})
@@ -183,7 +182,7 @@ var _ = Describe("Create", func() {
 				BaseImageURL: integration.String2URL(baseImagePath),
 				ID:           randomImageID,
 				DiskLimit:    tenMegabytes,
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -197,7 +196,7 @@ var _ = Describe("Create", func() {
 					DiskLimit:    -200,
 					BaseImageURL: integration.String2URL(baseImagePath),
 					ID:           randomImageID,
-					Mount:        mountByDefault(),
+					Mount:        true,
 				})
 				Expect(err).To(MatchError(ContainSubstring("disk limit cannot be negative")))
 			})
@@ -210,7 +209,7 @@ var _ = Describe("Create", func() {
 					ExcludeBaseImageFromQuota: true,
 					BaseImageURL:              integration.String2URL(baseImagePath),
 					ID:                        randomImageID,
-					Mount:                     mountByDefault(),
+					Mount:                     true,
 				})
 				Expect(err).ToNot(HaveOccurred())
 				_, err = Runner.Stats(randomImageID)
@@ -227,7 +226,7 @@ var _ = Describe("Create", func() {
 			_, err := Runner.Create(groot.CreateSpec{
 				ID:           "my-busybox",
 				BaseImageURL: integration.String2URL("docker:///cfgarden/garden-busybox"),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(Runner.Delete("my-busybox")).To(Succeed())
@@ -269,7 +268,7 @@ var _ = Describe("Create", func() {
 				_, err = Runner.Create(groot.CreateSpec{
 					ID:           "my-old-local",
 					BaseImageURL: integration.String2URL(yetAnotherBaseImagePath),
-					Mount:        mountByDefault(),
+					Mount:        true,
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(Runner.Delete("my-old-local")).To(Succeed())
@@ -358,7 +357,7 @@ var _ = Describe("Create", func() {
 			_, err := Runner.Create(groot.CreateSpec{
 				ID:           "my-busybox",
 				BaseImageURL: integration.String2URL("docker:///cfgarden/garden-busybox"),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -377,7 +376,7 @@ var _ = Describe("Create", func() {
 			_, err = Runner.Create(groot.CreateSpec{
 				ID:            "my-empty",
 				BaseImageURL:  integration.String2URL("docker:///cfgarden/empty:v0.1.1"),
-				Mount:         mountByDefault(),
+				Mount:         true,
 				CleanOnCreate: false,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -446,41 +445,6 @@ var _ = Describe("Create", func() {
 		})
 	})
 
-	Context("when the requested filesystem driver is not supported", func() {
-		It("fails with a useful error message", func() {
-			_, err := Runner.WithDriver("dinosaurfs").Create(groot.CreateSpec{
-				BaseImageURL: integration.String2URL(baseImagePath),
-				ID:           "some-id",
-				Mount:        true,
-			})
-			Expect(err).To(MatchError(ContainSubstring("filesystem driver not supported: dinosaurfs")))
-		})
-	})
-
-	Context("when StorePath doesn't match the given driver", func() {
-		var (
-			storePath string
-			runner    runner.Runner
-		)
-
-		BeforeEach(func() {
-			var err error
-			storePath, err = ioutil.TempDir("/mnt/ext4", "")
-			Expect(err).NotTo(HaveOccurred())
-
-			runner = Runner.WithStore(storePath).WithDriver(Driver)
-		})
-
-		It("returns an error", func() {
-			_, err := runner.Create(groot.CreateSpec{
-				BaseImageURL: integration.String2URL(baseImagePath),
-				ID:           randomImageID,
-			})
-			errMessage := fmt.Sprintf("Store path filesystem (%s) is incompatible with requested driver", storePath)
-			Expect(err).To(MatchError(ContainSubstring(errMessage)))
-		})
-	})
-
 	Describe("--config global flag", func() {
 		var (
 			cfg  config.Config
@@ -495,7 +459,7 @@ var _ = Describe("Create", func() {
 			spec = groot.CreateSpec{
 				ID:           randomImageID,
 				BaseImageURL: integration.String2URL(baseImagePath),
-				Mount:        mountByDefault(),
+				Mount:        true,
 			}
 
 			Expect(Runner.SetConfig(cfg)).To(Succeed())
@@ -516,18 +480,6 @@ var _ = Describe("Create", func() {
 				containerSpec, err := runner.Create(spec)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(filepath.Dir(containerSpec.Root.Path)).To(Equal(filepath.Join(cfg.StorePath, "images", randomImageID)))
-			})
-		})
-
-		Describe("filesystem driver", func() {
-			BeforeEach(func() {
-				cfg.FSDriver = "this-should-fail"
-			})
-
-			It("uses the filesystem driver from the config file", func() {
-				_, err := Runner.WithoutDriver().Create(spec)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("filesystem driver not supported: this-should-fail"))
 			})
 		})
 
@@ -555,33 +507,6 @@ var _ = Describe("Create", func() {
 				contents, err := ioutil.ReadFile(draxCalledFile.Name())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(contents)).To(Equal("I'm groot - drax"))
-			})
-		})
-
-		Describe("tardis bin", func() {
-			var (
-				tardisCalledFile *os.File
-				tardisBin        *os.File
-			)
-
-			BeforeEach(func() {
-				integration.SkipIfNotXFS(Driver)
-				_, tardisBin, tardisCalledFile = integration.CreateFakeTardis()
-				cfg.TardisBin = tardisBin.Name()
-			})
-
-			It("uses the tardis bin from the config file", func() {
-				_, err := Runner.WithoutTardisBin().Create(groot.CreateSpec{
-					BaseImageURL: integration.String2URL(baseImagePath),
-					ID:           randomImageID,
-					DiskLimit:    104857600,
-					Mount:        mountByDefault(),
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				contents, err := ioutil.ReadFile(tardisCalledFile.Name())
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(contents)).To(Equal("I'm groot - tardis"))
 			})
 		})
 
@@ -653,27 +578,6 @@ var _ = Describe("Create", func() {
 						Expect(containerSpec.Mounts[0].Source).To(Equal(filepath.Join(StorePath, store.ImageDirName, "some-id", "snapshot")))
 						Expect(containerSpec.Mounts[0].Options).To(HaveLen(1))
 						Expect(containerSpec.Mounts[0].Options[0]).To(Equal("bind"))
-					})
-				})
-
-				Context("XFS", func() {
-					BeforeEach(func() {
-						integration.SkipIfNotXFS(Driver)
-					})
-
-					It("returns the mount information in the output json", func() {
-						Expect(containerSpec.Mounts).ToNot(BeNil())
-						Expect(containerSpec.Mounts[0].Destination).To(Equal("/"))
-						Expect(containerSpec.Mounts[0].Type).To(Equal("overlay"))
-						Expect(containerSpec.Mounts[0].Source).To(Equal("overlay"))
-						Expect(containerSpec.Mounts[0].Options).To(HaveLen(1))
-						Expect(containerSpec.Mounts[0].Options[0]).To(MatchRegexp(
-							fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
-								filepath.Join(StorePath, overlayxfs.LinksDirName, ".*"),
-								filepath.Join(StorePath, store.ImageDirName, "some-id", overlayxfs.UpperDir),
-								filepath.Join(StorePath, store.ImageDirName, "some-id", overlayxfs.WorkDir),
-							),
-						))
 					})
 				})
 			})

@@ -7,22 +7,22 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/commands"
-	"code.cloudfoundry.org/grootfs/commands/config"
-	"code.cloudfoundry.org/grootfs/store"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/commands"
+	"github.com/SUSE/groot-btrfs/commands/config"
+	"github.com/SUSE/groot-btrfs/store"
 
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/urfave/cli"
 )
 
+var version string
+
 const (
-	defaultFilesystemDriver = "overlay-xfs"
-	defaultDraxBin          = "drax"
-	defaultTardisBin        = "tardis"
-	defaultNewuidmapBin     = "newuidmap"
-	defaultNewgidmapBin     = "newgidmap"
+	defaultDraxBin      = "drax"
+	defaultNewuidmapBin = "newuidmap"
+	defaultNewgidmapBin = "newgidmap"
 )
 
 func init() {
@@ -49,11 +49,6 @@ func main() {
 			Value: store.DefaultStorePath,
 		},
 		cli.StringFlag{
-			Name:  "driver",
-			Usage: "Storage driver to use <btrfs|overlay-xfs>",
-			Value: defaultFilesystemDriver,
-		},
-		cli.StringFlag{
 			Name:  "log-level",
 			Usage: "Set logging level <debug|info|error|fatal>",
 			Value: "fatal",
@@ -61,11 +56,6 @@ func main() {
 		cli.StringFlag{
 			Name:  "log-file",
 			Usage: "File to write logs to. Using this option sets the log level to `info` if --log-level is not specified.",
-		},
-		cli.StringFlag{
-			Name:  "tardis-bin",
-			Usage: "Path to tardis bin. (If not provided will use $PATH)",
-			Value: defaultTardisBin,
 		},
 		cli.StringFlag{
 			Name:  "drax-bin",
@@ -113,9 +103,7 @@ func main() {
 		ctx.App.Metadata["configBuilder"] = cfgBuilder
 
 		cfg, err := cfgBuilder.WithStorePath(ctx.GlobalString("store"), ctx.IsSet("store")).
-			WithFSDriver(ctx.GlobalString("driver"), ctx.IsSet("driver")).
 			WithDraxBin(ctx.GlobalString("drax-bin"), ctx.IsSet("drax-bin")).
-			WithTardisBin(ctx.GlobalString("tardis-bin"), ctx.IsSet("tardis-bin")).
 			WithMetronEndpoint(ctx.GlobalString("metron-endpoint")).
 			WithLogLevel(ctx.GlobalString("log-level"), ctx.IsSet("log-level")).
 			WithLogFile(ctx.GlobalString("log-file")).
@@ -130,7 +118,7 @@ func main() {
 		lagerLogLevel := translateLogLevel(cfg.LogLevel)
 		logger, err := configureLogger(lagerLogLevel, cfg.LogFile)
 		if err != nil {
-			return err
+			return cli.NewExitError(err.Error(), 1)
 		}
 		ctx.App.Metadata["logger"] = logger
 

@@ -4,9 +4,9 @@ package unpackerfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/groot"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
+	"github.com/SUSE/groot-btrfs/groot"
 )
 
 type FakeIDMapper struct {

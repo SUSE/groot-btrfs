@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+set -o errexit
+
+. make/include/colors.sh
+printf "${OK_COLOR}==> Testing${NO_COLOR}\n"
+
+source make/include/test_utils.sh
+
+trap sudo_unmount_storage EXIT
+
+sudo_mount_storage
+
+# containers/image gets angry when the home is wrong because it's trying to
+# read $HOME/.docker
+export HOME=/home/groot
+
+ginkgo -p -nodes 5 -race -r integration

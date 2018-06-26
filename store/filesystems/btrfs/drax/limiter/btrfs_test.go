@@ -4,9 +4,9 @@ import (
 	"errors"
 	"os/exec"
 
-	limiterpkg "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/limiter"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	limiterpkg "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/limiter"
 
 	"code.cloudfoundry.org/commandrunner/fake_command_runner"
 	. "code.cloudfoundry.org/commandrunner/fake_command_runner/matchers"

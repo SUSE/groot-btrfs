@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/grootfs/groot/grootfakes"
-	"code.cloudfoundry.org/grootfs/store"
-	"code.cloudfoundry.org/grootfs/store/locksmith"
+	"github.com/SUSE/groot-btrfs/groot/grootfakes"
+	"github.com/SUSE/groot-btrfs/store"
+	"github.com/SUSE/groot-btrfs/store/locksmith"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

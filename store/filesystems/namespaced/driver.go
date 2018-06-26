@@ -7,14 +7,13 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/commandrunner"
-	"code.cloudfoundry.org/grootfs/base_image_puller"
-	"code.cloudfoundry.org/grootfs/base_image_puller/unpacker"
-	"code.cloudfoundry.org/grootfs/groot"
-	"code.cloudfoundry.org/grootfs/store/filesystems/btrfs"
-	"code.cloudfoundry.org/grootfs/store/filesystems/overlayxfs"
-	"code.cloudfoundry.org/grootfs/store/filesystems/spec"
-	"code.cloudfoundry.org/grootfs/store/image_cloner"
 	"code.cloudfoundry.org/lager"
+	"github.com/SUSE/groot-btrfs/base_image_puller"
+	"github.com/SUSE/groot-btrfs/base_image_puller/unpacker"
+	"github.com/SUSE/groot-btrfs/groot"
+	"github.com/SUSE/groot-btrfs/store/filesystems/btrfs"
+	"github.com/SUSE/groot-btrfs/store/filesystems/spec"
+	"github.com/SUSE/groot-btrfs/store/image_cloner"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/pkg/errors"
 	"github.com/tscolari/lagregator"
@@ -280,10 +279,6 @@ func specToDriver(spec spec.DriverSpec) (internalDriver, error) {
 			spec.MkfsBinaryPath,
 			spec.SuidBinaryPath,
 			spec.StorePath), nil
-	case "overlay-xfs":
-		return overlayxfs.NewDriver(
-			spec.StorePath,
-			spec.SuidBinaryPath), nil
 	default:
 		return nil, errors.Errorf("invalid filesystem spec: %s not recognized", spec.Type)
 	}

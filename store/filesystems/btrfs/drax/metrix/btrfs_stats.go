@@ -1,4 +1,4 @@
-package metrix // import "code.cloudfoundry.org/grootfs/store/filesystems/btrfs/drax/metrix"
+package metrix // import "github.com/SUSE/groot-btrfs/store/filesystems/btrfs/drax/metrix"
 
 import (
 	"bytes"

@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	XfsType   = int64(0x58465342)
 	BtrfsType = int64(0x9123683E)
 )
 
@@ -61,8 +60,6 @@ func checkMountOptions(path, filesystem string, options ...string) error {
 
 func filesystemCode(filesystem string) (int64, error) {
 	switch filesystem {
-	case "xfs":
-		return XfsType, nil
 	case "btrfs":
 		return BtrfsType, nil
 	default:
