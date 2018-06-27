@@ -2,6 +2,7 @@
 name: groot-btrfs
 templates:
   bin/pre-start.erb: bin/pre-start
+  bin/init-store.erb: bin/init-store
   config/groot-btrfs.yaml.erb: config/groot-btrfs.yaml
   config/groot-btrfs-privileged.yaml.erb: config/groot-btrfs-privileged.yaml
 
@@ -30,4 +31,3 @@ properties:
   grootfs.graph_cleanup_threshold_in_mb:
     description: "Total size of all container image filesystem layers before graph cleanup is activated. -1 disables graph cleanup."
     default: -1
-

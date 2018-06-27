@@ -25,10 +25,10 @@ volume_size() {
 main() {
   source /var/vcap/jobs/garden/bin/grootfs-utils
 
-  export PATH=/var/vcap/packages/groot-btrfs/bin:/var/vcap/packages/btrfs-progs/bin:$PATH
+  export PATH=/var/vcap/jobs/groot-btrfs/bin:/var/vcap/packages/groot-btrfs/bin:/var/vcap/packages/btrfs-progs/bin:$PATH
 
-  local privileged_config=/var/vcap/jobs/groot-btrfs/config/privileged_grootfs_config.yml
-  local unprivileged_config=/var/vcap/jobs/groot-btrfs/config/grootfs_config.yml
+  local privileged_config=/var/vcap/jobs/groot-btrfs/config/groot-btrfs-privileged.yaml
+  local unprivileged_config=/var/vcap/jobs/groot-btrfs/config/groot-btrfs.yaml
 
   init_privileged_store $privileged_config
   init_unprivileged_store $unprivileged_config
@@ -38,11 +38,18 @@ main() {
 
 init_privileged_store() {
   local config_path=$1
+
+  init-store -s /var/vcap/data/grootfs/store/privileged -b $(volume_size)
+
   groot-btrfs --config ${config_path} init-store
 }
 
 init_unprivileged_store() {
   local config_path=$1
+
+  init-store -s /var/vcap/data/grootfs/store/unprivileged -b $(volume_size) \
+    -u "$(unprivileged_root_mapping);$(unprivileged_range_mapping)" \
+    -g "$(unprivileged_root_mapping);$(unprivileged_range_mapping)"
 
   groot-btrfs --config ${config_path} init-store \
     --uid-mapping "$(unprivileged_root_mapping)" \

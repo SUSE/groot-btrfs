@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# This script's responsibility is to prepare the btrfs filesystem to be used
+# with the groot-btrfs driver.
+
+set -ex
+
+# Help function
+usage() {
+cat <<-HELP
+Usage: $(basename "${0}") [OPTIONS]
+OPTIONS
+-s      The path of the store to be created
+-b      The filesystem size in bytes
+-h      Print this help message and exit
+HELP
+}
+
+# This function checks $STORE_PATH for the following cases
+# - If the path exists, it checks if it is a directory and a btrfs filesystem is mounted there.
+#   If not, it fails with and error.
+# - If the path does not exist, it creates it and mounts a btrfs filesystem.
+prepare_filesystem() {
+  if [ -d "${STORE_PATH}" ]; then
+    validate_filesystem $STORE_PATH
+  else
+    create_and_mount_filesystem $STORE_PATH $STORE_SIZE_BYTES
+  fi
+}
+validate_filesystem() {
+  if [ $(stat -f -c "%T" "${1}") != "btrfs" ]; then
+    echo "No btrfs filesystem on $1" && exit 1
+  fi
+
+  check_string=".*${1} btrfs .*user_subvol_rm_allowed.*"
+  if [ $(cat /proc/mounts | grep "$check_string" | wc -c) -eq 0 ]; then
+    echo "btrfs filesystem mounted without user_subvol_rm_allowed option" && exit 1
+  fi
+}
+
+# Creates a btrfs filesystem and mounts it on $1. The size is defined by $2 in bytes.
+create_and_mount_filesystem() {
+  mkdir -p $1 -m 0755
+  backing_store_file=$1/.backing-store
+  touch $backing_store_file
+  chmod 600 $backing_store_file
+  truncate -s $2 $backing_store_file
+
+  mkfs.btrfs -f $backing_store_file
+  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
+  btrfs quota enable $1
+}
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+STORE_SIZE_BYTES=0
+STORE_PATH=""
+
+while getopts "hu:g:s:b:r:" opt; do
+    case "$opt" in
+    h)
+      usage
+      exit 0
+      ;;
+    s)
+      STORE_PATH=$OPTARG
+      ;;
+    b)
+      STORE_SIZE_BYTES=$OPTARG
+      ;;
+    esac
+done
+
+shift $((OPTIND-1))
+[ "${1:-}" = "--" ] && shift
+
+if [ -z "${STORE_PATH}" ]; then
+  echo "Must specify store path (-s option)"
+  usage && exit 1;
+fi
+
+if [ ${STORE_SIZE_BYTES} == 0 ]; then
+  echo "Must specify store size (-b option)"
+  usage && exit 1;
+fi
+
+if [ $(id -u) != 0 ]; then
+  echo "Only Root user can initialize store" && exit 1
+fi
+
+prepare_filesystem
