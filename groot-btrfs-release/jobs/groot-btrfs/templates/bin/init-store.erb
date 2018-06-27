@@ -18,7 +18,7 @@ HELP
 
 # This function checks $STORE_PATH for the following cases
 # - If the path exists, it checks if it is a directory and a btrfs filesystem is mounted there.
-#   If not, it fails with and error.
+#   If not, it fails with an error.
 # - If the path does not exist, it creates it and mounts a btrfs filesystem.
 prepare_filesystem() {
   if [ -d "${STORE_PATH}" ]; then
