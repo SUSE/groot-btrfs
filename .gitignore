@@ -4,5 +4,6 @@ groot-btrfs-release/.dev_builds
 groot-btrfs-release/blobs
 groot-btrfs-release/.blobs
 groot-btrfs-release/config/dev.yml
+groot-btrfs-release/config/private.yml
 
 coverage.xml
