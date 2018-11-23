@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e -x
 
-pushd $RELEASE_DIR/..
-source ./make/include/versioning.sh
+mkdir "${BUILD_DIR}/groot-btrfs/"
+
+pushd "$RELEASE_DIR/.."
+    source ./make/include/versioning.sh
+    cp -r * "${BUILD_DIR}/groot-btrfs/"
 popd
 
 echo -e "#!/bin/sh\n\nexport APP_VERSION=${APP_VERSION}" > "${BUILD_DIR}/groot-btrfs/version.sh"
