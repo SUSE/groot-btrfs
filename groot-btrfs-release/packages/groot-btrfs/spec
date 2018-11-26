@@ -1,18 +1,7 @@
 ---
 name: groot-btrfs
 
-files:
-  - groot-btrfs/base_image_puller/**/*
-  - groot-btrfs/commands/**/*
-  - groot-btrfs/fetcher/**/*
-  - groot-btrfs/groot/**/*
-  - groot-btrfs/make/**/*
-  - groot-btrfs/metrics/**/*
-  - groot-btrfs/store/**/*
-  - groot-btrfs/vendor/**/*
-  - groot-btrfs/Gopkg.lock
-  - groot-btrfs/Gopkg.toml
-  - groot-btrfs/main.go
+files: []
 
 dependencies:
   - golang1.9

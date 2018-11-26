@@ -1,8 +1,22 @@
 #!/bin/bash
 set -e -x
 
-pushd $RELEASE_DIR/..
-source ./make/include/versioning.sh
+mkdir "${BUILD_DIR}/groot-btrfs/"
+
+pushd "$RELEASE_DIR/.."
+    source ./make/include/versioning.sh
+
+    cp -r ./base_image_puller "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./commands          "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./fetcher           "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./groot             "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./make              "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./metrics           "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./store             "${BUILD_DIR}/groot-btrfs/"
+    cp -r ./vendor            "${BUILD_DIR}/groot-btrfs/"
+    cp    ./Gopkg.lock        "${BUILD_DIR}/groot-btrfs/"
+    cp    ./Gopkg.toml        "${BUILD_DIR}/groot-btrfs/"
+    cp    ./main.go           "${BUILD_DIR}/groot-btrfs/"
 popd
 
 echo -e "#!/bin/sh\n\nexport APP_VERSION=${APP_VERSION}" > "${BUILD_DIR}/groot-btrfs/version.sh"
