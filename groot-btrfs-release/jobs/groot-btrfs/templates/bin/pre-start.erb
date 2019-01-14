@@ -1,5 +1,5 @@
 #!/bin/bash
-
+<% if_p('garden.btrfs-active') do |dummy| %>
 set -ex
 
 export store_mountpoint="/var/vcap/data"
@@ -64,3 +64,4 @@ drax_setup() {
 }
 
 main
+<% end %>
