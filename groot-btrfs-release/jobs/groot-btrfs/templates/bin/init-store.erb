@@ -47,7 +47,24 @@ create_and_mount_filesystem() {
   truncate -s $2 $backing_store_file
 
   mkfs.btrfs -f $backing_store_file
-  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
+
+  # It is possible for the filesystem creation to take some more time
+  # in the background when reaching the mount, causing it to fail.
+  # Simply repeat the attempt. But not too often, i.e. not too long.
+
+  trials=15 ;# 30 seconds, given the sleep period
+  until mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
+  do
+      trials=$(expr $trials - 1)
+      if test $trials -eq 0 ; then
+	  echo New filesystem has not become ready within 30 seconds.
+	  echo Aborting.
+	  exit 1
+      fi
+      echo Waiting for the new filesystem to be ready
+      sleep 2
+  done
+
   btrfs quota enable $1
 }
 
