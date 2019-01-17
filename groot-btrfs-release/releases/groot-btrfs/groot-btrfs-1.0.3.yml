@@ -1,0 +1,85 @@
+name: groot-btrfs
+version: 1.0.3
+commit_hash: 5cc4568
+uncommitted_changes: false
+jobs:
+- name: groot-btrfs
+  version: 15ca7149ae21f5081cc36471262c2453621e24c4
+  fingerprint: 15ca7149ae21f5081cc36471262c2453621e24c4
+  sha1: 09db5ca36f8b154125add4604f70e1e22ce0e441
+packages:
+- name: autoconf
+  version: 4d605c7aaca3636fc4a7d75c99092bf831307bbc
+  fingerprint: 4d605c7aaca3636fc4a7d75c99092bf831307bbc
+  sha1: 7cd328bf8204ca9bd6f34870385ea7fdfb4ff66b
+  dependencies: []
+- name: automake
+  version: 1192afbd70f952d575ec5770ea084e6a49bca70d
+  fingerprint: 1192afbd70f952d575ec5770ea084e6a49bca70d
+  sha1: 7167579925c315ee4d751bdb62d10e4a3d32eaf0
+  dependencies:
+  - autoconf
+- name: btrfs-progs
+  version: b92fb42d8e1440b60d01e6f68c456edea9d0f821
+  fingerprint: b92fb42d8e1440b60d01e6f68c456edea9d0f821
+  sha1: 5d276b2da61e90dbc82ede2df647439ec1a77700
+  dependencies:
+  - autoconf
+  - automake
+  - libtool
+  - lzo
+  - pkg-config
+  - util-linux
+  - zlib
+- name: golang1.9
+  version: 57c0bf63868bcfdc4991e426b6d990b9866f337b
+  fingerprint: 57c0bf63868bcfdc4991e426b6d990b9866f337b
+  sha1: e9f10dc7e7388a8df2c9119b07ab2bd82a5daccc
+  dependencies: []
+- name: groot-btrfs
+  version: 05051c96392b25dceaf3324309377c47156d7678
+  fingerprint: 05051c96392b25dceaf3324309377c47156d7678
+  sha1: d68b498fb1ca641efe61268cab032e623ea7d120
+  dependencies:
+  - golang1.9
+- name: libtool
+  version: 5720aea976ac768e40e17857e11a6fb0377e17f6
+  fingerprint: 5720aea976ac768e40e17857e11a6fb0377e17f6
+  sha1: 63194feed6f09f43031c21399e0d7077cd498978
+  dependencies: []
+- name: lzo
+  version: 31fc5ae1792ef5366a55c98bd25d6f5415c66ae0
+  fingerprint: 31fc5ae1792ef5366a55c98bd25d6f5415c66ae0
+  sha1: 398d88acdf9cead9ed6455403beb6a1acbde7f86
+  dependencies:
+  - autoconf
+  - automake
+  - libtool
+  - pkg-config
+- name: pkg-config
+  version: 0b08652df7828fdf24c20d3dab27cf2f5ec75bd3
+  fingerprint: 0b08652df7828fdf24c20d3dab27cf2f5ec75bd3
+  sha1: c68456a4d418dc34b9ca0e8dbb9aa8b0189cadf4
+  dependencies: []
+- name: util-linux
+  version: 50aff8f9fd3886bdbdea1b50dc747a3509ae3c7f
+  fingerprint: 50aff8f9fd3886bdbdea1b50dc747a3509ae3c7f
+  sha1: e8b90c390a76d8385b127855aad2860d2efa0556
+  dependencies:
+  - autoconf
+  - automake
+  - libtool
+  - pkg-config
+- name: zlib
+  version: 8c9bad3778cb79571fa97c3ea91ee0acdc8c5b24
+  fingerprint: 8c9bad3778cb79571fa97c3ea91ee0acdc8c5b24
+  sha1: 166c2c35ae4f30839d0dd4959ed783068452f8c6
+  dependencies:
+  - autoconf
+  - automake
+  - libtool
+  - pkg-config
+license:
+  version: d1a6232464a6d8149b4a19429b5417f821dafad1
+  fingerprint: d1a6232464a6d8149b4a19429b5417f821dafad1
+  sha1: 2aa37f20971c4ef93e6fd4bc51ebcf809bbdad6a
