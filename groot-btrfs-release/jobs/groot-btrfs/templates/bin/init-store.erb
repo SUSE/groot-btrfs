@@ -22,13 +22,13 @@ HELP
 # - If the path does not exist, it creates it and mounts a btrfs filesystem.
 prepare_filesystem() {
   if [ -d "${STORE_PATH}" ]; then
-    validate_filesystem $STORE_PATH
+    validate_filesystem "${STORE_PATH}"
   else
-    create_and_mount_filesystem $STORE_PATH $STORE_SIZE_BYTES
+    create_and_mount_filesystem "${STORE_PATH}" "${STORE_SIZE_BYTES}"
   fi
 }
 validate_filesystem() {
-  if [ $(stat -f -c "%T" "${1}") != "btrfs" ]; then
+  if [ "$(stat -f -c "%T" "${1}")" != "btrfs" ]; then
     echo "No btrfs filesystem on $1" && exit 1
   fi
 
@@ -40,15 +40,34 @@ validate_filesystem() {
 
 # Creates a btrfs filesystem and mounts it on $1. The size is defined by $2 in bytes.
 create_and_mount_filesystem() {
-  mkdir -p $1 -m 0755
-  backing_store_file=$1/.backing-store
-  touch $backing_store_file
-  chmod 600 $backing_store_file
-  truncate -s $2 $backing_store_file
+  mkdir -p "${1}" -m 0755
+  backing_store_file="${1}/.backing-store"
+  touch "${backing_store_file}"
+  chmod 600 "${backing_store_file}"
+  truncate -s "${2}" "${backing_store_file}"
 
-  mkfs.btrfs -f $backing_store_file
-  mount -t btrfs -o user_subvol_rm_allowed $backing_store_file $1
-  btrfs quota enable $1
+  mkfs.btrfs -f "${backing_store_file}"
+
+  # It is possible for the filesystem creation to take some more time
+  # in the background when reaching the mount, causing it to fail.
+  # Simply repeat the attempt. But not too often, i.e. not too long.
+
+  trials=15
+  sleep_time=2
+  count=$trials
+  until mount -t btrfs -o user_subvol_rm_allowed "${backing_store_file}" "${1}"
+  do
+      count=$(( count - 1 ))
+      if test $count -eq 0 ; then
+	  echo New filesystem has not become ready within $trials attempts, about $(( trials * sleep_time )) seconds.
+	  echo Aborting.
+	  exit 1
+      fi
+      echo Waiting for the new filesystem to be ready
+      sleep $sleep_time
+  done
+
+  btrfs quota enable "${1}"
 }
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -79,12 +98,12 @@ if [ -z "${STORE_PATH}" ]; then
   usage && exit 1;
 fi
 
-if [ ${STORE_SIZE_BYTES} == 0 ]; then
+if [ "${STORE_SIZE_BYTES}" == 0 ]; then
   echo "Must specify store size (-b option)"
   usage && exit 1;
 fi
 
-if [ $(id -u) != 0 ]; then
+if [ "$(id -u)" != 0 ]; then
   echo "Only Root user can initialize store" && exit 1
 fi
 
