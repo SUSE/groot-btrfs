@@ -48,24 +48,17 @@ create_and_mount_filesystem() {
 
   mkfs.btrfs -f "${backing_store_file}"
 
-  # It is possible for the filesystem creation to take some more time
-  # in the background when reaching the mount, causing it to fail.
-  # Simply repeat the attempt. But not too often, i.e. not too long.
-
-  trials=15
-  sleep_time=2
-  count=$trials
-  until mount -t btrfs -o user_subvol_rm_allowed "${backing_store_file}" "${1}"
-  do
-      count=$(( count - 1 ))
-      if test $count -eq 0 ; then
-	  echo New filesystem has not become ready within $trials attempts, about $(( trials * sleep_time )) seconds.
-	  echo Aborting.
-	  exit 1
-      fi
-      echo Waiting for the new filesystem to be ready
-      sleep $sleep_time
-  done
+  local logfile="/var/log/create_and_mount_filesystem.log"
+  if ! mount -t btrfs -o loop,user_subvol_rm_allowed "${backing_store_file}" "${1}" 2> "${logfile}"; then
+    set +x
+    cat "${logfile}"
+    if grep --silent "failed to setup loop device" < "${logfile}"; then
+      printf "Waiting for the loop kernel module to be loaded..."
+      until grep --silent "loop" < "/proc/modules"; do sleep 1; done;
+      printf " done; bailing out for container restart.\\n"
+    fi
+    exit 1
+  fi
 
   btrfs quota enable "${1}"
 }
