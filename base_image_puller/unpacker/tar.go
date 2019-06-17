@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -192,7 +193,6 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 	}
 
 	tarReader := tar.NewReader(spec.Stream)
-	opaqueWhiteouts := []string{}
 	var totalBytesUnpacked int64
 	for {
 		tarHeader, err := tarReader.Next()
@@ -205,7 +205,10 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 		entryPath := filepath.Join(spec.BaseDirectory, tarHeader.Name)
 
 		if strings.Contains(tarHeader.Name, ".wh..wh..opq") {
-			opaqueWhiteouts = append(opaqueWhiteouts, entryPath)
+			parentDir := path.Dir(entryPath)
+			if err := cleanWhiteoutDir(parentDir); err != nil {
+				return base_image_puller.UnpackOutput{}, err
+			}
 			continue
 		}
 
@@ -226,7 +229,6 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 
 	return base_image_puller.UnpackOutput{
 		BytesWritten:    totalBytesUnpacked,
-		OpaqueWhiteouts: opaqueWhiteouts,
 	}, nil
 }
 
