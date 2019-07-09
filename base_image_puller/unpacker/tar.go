@@ -8,11 +8,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
-	"unsafe"
 
 	"github.com/pkg/errors"
 	"github.com/tscolari/lagregator"
@@ -92,48 +92,6 @@ type whiteoutHandler interface {
 	removeWhiteout(path string) error
 }
 
-type overlayWhiteoutHandler struct {
-	whiteoutDevName string
-	whiteoutDevDir  *os.File
-}
-
-func (h *overlayWhiteoutHandler) removeWhiteout(path string) error {
-	toBeDeletedPath := strings.Replace(path, ".wh.", "", 1)
-	if err := os.RemoveAll(toBeDeletedPath); err != nil {
-		return errors.Wrap(err, "deleting  file")
-	}
-
-	targetPath, err := os.Open(filepath.Dir(toBeDeletedPath))
-	if err != nil {
-		return errors.Wrap(err, "opening target whiteout directory")
-	}
-
-	targetName, err := syscall.BytePtrFromString(filepath.Base(toBeDeletedPath))
-	if err != nil {
-		return errors.Wrap(err, "converting whiteout path to byte pointer")
-	}
-
-	whiteoutDevName, err := syscall.BytePtrFromString(h.whiteoutDevName)
-	if err != nil {
-		return errors.Wrap(err, "converting whiteout device name to byte pointer")
-	}
-
-	_, _, errno := syscall.Syscall6(syscall.SYS_LINKAT,
-		h.whiteoutDevDir.Fd(),
-		uintptr(unsafe.Pointer(whiteoutDevName)),
-		targetPath.Fd(),
-		uintptr(unsafe.Pointer(targetName)),
-		0,
-		0,
-	)
-
-	if errno != 0 {
-		return errors.Wrapf(errno, "failed to create whiteout node: %s", toBeDeletedPath)
-	}
-
-	return nil
-}
-
 type defaultWhiteoutHandler struct{}
 
 func (*defaultWhiteoutHandler) removeWhiteout(path string) error {
@@ -192,7 +150,6 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 	}
 
 	tarReader := tar.NewReader(spec.Stream)
-	opaqueWhiteouts := []string{}
 	var totalBytesUnpacked int64
 	for {
 		tarHeader, err := tarReader.Next()
@@ -205,7 +162,10 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 		entryPath := filepath.Join(spec.BaseDirectory, tarHeader.Name)
 
 		if strings.Contains(tarHeader.Name, ".wh..wh..opq") {
-			opaqueWhiteouts = append(opaqueWhiteouts, entryPath)
+			parentDir := path.Dir(entryPath)
+			if err := cleanWhiteoutDir(parentDir); err != nil {
+				return base_image_puller.UnpackOutput{}, err
+			}
 			continue
 		}
 
@@ -226,7 +186,6 @@ func (u *TarUnpacker) unpack(logger lager.Logger, spec base_image_puller.UnpackS
 
 	return base_image_puller.UnpackOutput{
 		BytesWritten:    totalBytesUnpacked,
-		OpaqueWhiteouts: opaqueWhiteouts,
 	}, nil
 }
 
